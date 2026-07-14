@@ -104,6 +104,14 @@ still honestly reported as unused.
 
 ## 4. Future: cross-token / multi-hop routing
 
+> **Partially delivered (2026-07-13):** the **cycle** case of multi-hop —
+> A → B → C → A where the hops end where they started and net a profit — is
+> shipped as the **arbitrage** feature ([arbitrage.md](arbitrage.md)), atomic
+> in ONE TakeManyOrders tx with zero contract changes (no intermediate-asset
+> exposure: the tx balances globally, so each hop funds the next in-tx).
+> Open-path routing A → B → C as a *user intent* (spend A, keep C) remains
+> future work as described below.
+
 Smart Fill Phase 2 is **single-pair only**: `spendAsset → receiveAsset` must
 have a direct order book. Routing A → B → C (spend A, hop through B, receive C)
 means chaining takes across pairs — strictly more txs, price/slippage across
@@ -119,7 +127,7 @@ half-completed hop leaves the user holding the intermediate asset).
 | **Smart Fill (now)** | none | none | best-route discovery + sequential fill over existing orders |
 | TakeManyOrders | yes (new script) | batched payment matching, output tagging | atomic multi-order fill |
 | Partial fills | yes (new script) | continuation outputs, datum-diff | fractional fills |
-| Cross-token routing | builds on the above | multi-hop price/atomicity | A→B→C swaps |
+| Cross-token routing | builds on the above | multi-hop price/atomicity | A→B→C swaps (cycle case shipped as [arbitrage](arbitrage.md)) |
 
 Each later phase is gated on the previous one's on-chain work being audited.
 Shipping Smart Fill first gets the routing UX and its honesty story in front of

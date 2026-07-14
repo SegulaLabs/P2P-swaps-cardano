@@ -112,7 +112,9 @@ npm run build             # backend tsc + frontend next build
 
 1. The frontend sends your wallet's UTxOs + change address + a collateral
    UTxO to the backend, which builds and balances an **unsigned** transaction
-   (coin selection uses only *your* UTxOs — the backend has none).
+   (coin selection uses only *your* UTxOs — the backend has none). Collateral
+   is size-capped client-side and excluded from coin selection, since a
+   collateral input can't also be spent (docs/eutxo.md §9).
 2. You see a `TransactionPreview` with un-hidable warnings; nothing is signed
    until you explicitly confirm.
 3. Your CIP-30 wallet signs and submits. The backend never sees a key — it

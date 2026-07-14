@@ -95,6 +95,16 @@ update [open-questions.md](open-questions.md).
   wallet). CIP-30 wallets manage this; the backend tx-builder must leave
   collateral selection to the wallet or set it from wallet-provided UTxOs —
   never from backend-held funds (there are none).
+- **Collateral is not spendable.** A UTxO used as collateral cannot also be a
+  regular input, so the tx-builder excludes it from coin selection (a ledger
+  rule; ignoring it produces `NoCollateralInputs` — security.md §0).
+- **Therefore collateral must be SMALL** (a few ADA — it's only ever burned on
+  phase-2 script failure, which honest users never hit). Picking a large UTxO
+  as collateral silently removes that entire amount from the spendable set, so
+  a well-funded wallet can fail coin selection with "UTxO Balance
+  Insufficient". Neither CIP-30 nor Mesh enforces a sane size, so the app does:
+  `frontend/lib/walletAdapter.ts` `pickCollateral()` caps it at 20 ADA and
+  otherwise substitutes the wallet's smallest pure-ADA UTxO (security.md §0.2).
 
 ## 10. What this buys us
 

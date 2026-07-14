@@ -119,6 +119,12 @@ already cited in MCD §2/§8) applied to our full-fill model.
 - **No partial fills, no cross-token/multi-hop, no UpdateOrder, no mainnet,
   no custody** — still out of scope. This phase only relaxes the *count* of
   order inputs per take, with tagging to keep it safe.
+  *(Later note: "out of scope" meant no dedicated routing feature — the
+  design itself never restricted a batch to one pair, since every order
+  validates independently. Partial fills arrived in protocol v3
+  ([partial-fills.md](partial-fills.md)), and mixed-pair batches are now
+  exercised deliberately by the arbitrage feature
+  ([arbitrage.md](arbitrage.md)) with zero contract changes.)*
 
 ## 5. Redeployment consequences (important)
 
@@ -153,6 +159,10 @@ each group, and the UI states the group boundaries honestly.
   mint field burning all 5×N beacons; fails fast if N exceeds the cap.
 - **API**: `POST /tx/take-many-orders` (mirrors the existing take endpoint;
   validates each orderId, all on the same pair/side).
+  *(As built, the endpoint validates each order but deliberately does NOT
+  enforce same pair/side — the validator doesn't need it (§3.3), and
+  mixed-pair batches are what make arbitrage cycles possible
+  ([arbitrage.md](arbitrage.md)).)*
 - **Smart Fill**: keep the current route; add "Fill atomically (B per tx)" that
   calls the batched builder per group. The sequential path stays as a fallback.
 - **types**: `TxSummary.action` gains `"take-many-orders"`; the preview lists
