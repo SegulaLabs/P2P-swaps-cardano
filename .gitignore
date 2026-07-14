@@ -1,0 +1,21 @@
+# dependencies
+node_modules/
+
+# builds
+dist/
+.next/
+out/
+contracts/build/
+
+# env — never commit secrets (Blockfrost keys etc.)
+.env
+.env.local
+.env.*.local
+
+# misc
+*.log
+.DS_Store
+coverage/
+
+# throwaway preprod e2e test wallets — never commit
+e2e/wallets/

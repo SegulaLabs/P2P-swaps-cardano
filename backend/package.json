@@ -1,0 +1,30 @@
+{
+  "name": "@p2p-dex/backend",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Non-custodial API: order cache/indexer + unsigned-tx builder (Cardano preprod). Never holds keys or funds.",
+  "scripts": {
+    "dev": "tsx watch src/index.ts",
+    "build": "rm -rf dist && tsc -p tsconfig.build.json && cp src/protocol/plutus.json dist/protocol/plutus.json",
+    "start": "node dist/index.js",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run --dir src",
+    "sync-blueprint": "cp ../contracts/plutus.json src/protocol/plutus.json"
+  },
+  "dependencies": {
+    "@fastify/cors": "^10.0.0",
+    "@meshsdk/core": "^1.9.1",
+    "dotenv": "^16.4.0",
+    "fastify": "^5.0.0",
+    "pg": "^8.13.0",
+    "zod": "^3.23.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.14.0",
+    "@types/pg": "^8.11.0",
+    "tsx": "^4.19.0",
+    "typescript": "^5.6.0",
+    "vitest": "^4.1.10"
+  }
+}

@@ -1,0 +1,24 @@
+{
+  "name": "cardano-p2p-beacon-dex",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Cardano P2P beacon-token trading platform (preprod MVP) — monorepo root",
+  "workspaces": [
+    "backend",
+    "frontend"
+  ],
+  "scripts": {
+    "contracts:check": "cd contracts && aiken check",
+    "contracts:build": "cd contracts && aiken build && cd ../backend && npm run sync-blueprint",
+    "backend:dev": "npm run dev --workspace backend",
+    "frontend:dev": "npm run dev --workspace frontend",
+    "dev": "concurrently -n backend,frontend \"npm run backend:dev\" \"npm run frontend:dev\"",
+    "test": "npm run contracts:check && npm run test --workspaces",
+    "typecheck": "npm run typecheck --workspaces",
+    "build": "npm run build --workspaces"
+  },
+  "devDependencies": {
+    "@aiken-lang/aiken": "^1.1.23",
+    "concurrently": "^9.0.0"
+  }
+}

@@ -1,0 +1,6 @@
+{
+  "name": "@p2p-dex/e2e",
+  "private": true,
+  "type": "module",
+  "description": "Live preprod smoke-test harness (throwaway wallets; plays the browser-wallet role)"
+}

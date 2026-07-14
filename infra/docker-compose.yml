@@ -1,0 +1,80 @@
+# Local infrastructure. PostgreSQL is the default service; backend/frontend
+# containers are OPTIONAL (profile "app") — most dev runs them on the host
+# with npm. No mainnet services exist here and none may be added for the MVP.
+#
+# Usage (from repo root):
+#   cp .env.example .env
+#   docker compose -f infra/docker-compose.yml --env-file .env up -d            # postgres only
+#   docker compose -f infra/docker-compose.yml --env-file .env --profile app up # + backend/frontend
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: p2pdex-postgres
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-p2pdex}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}
+      POSTGRES_DB: ${POSTGRES_DB:-p2pdex}
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      # Schema applied on FIRST container boot only; to reapply after schema
+      # changes: docker compose down -v && up (dev-only cache, safe to wipe).
+      - ../backend/src/db/schema.sql:/docker-entrypoint-initdb.d/001_schema.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-p2pdex} -d ${POSTGRES_DB:-p2pdex}"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  backend:
+    profiles: ["app"]
+    image: node:20-alpine
+    container_name: p2pdex-backend
+    working_dir: /repo/backend
+    command: sh -c "npm install --no-audit --no-fund && npm run dev"
+    environment:
+      CARDANO_NETWORK: preprod
+      DATABASE_URL: postgres://${POSTGRES_USER:-p2pdex}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-p2pdex}
+      BLOCKFROST_PROJECT_ID_PREPROD: ${BLOCKFROST_PROJECT_ID_PREPROD:-}
+      PORT: 3001
+      CORS_ORIGIN: http://localhost:3000
+    ports:
+      - "3001:3001"
+    volumes:
+      - ..:/repo
+      - backend_node_modules:/repo/backend/node_modules
+      - root_node_modules:/repo/node_modules
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  frontend:
+    profiles: ["app"]
+    image: node:20-alpine
+    container_name: p2pdex-frontend
+    working_dir: /repo/frontend
+    command: sh -c "npm install --no-audit --no-fund && npm run dev"
+    environment:
+      NEXT_PUBLIC_API_URL: http://localhost:3001
+      NEXT_PUBLIC_CARDANO_NETWORK: preprod
+    ports:
+      - "3000:3000"
+    volumes:
+      - ..:/repo
+      - frontend_node_modules:/repo/frontend/node_modules
+      - root_node_modules_fe:/repo/node_modules
+    depends_on:
+      - backend
+
+  # kupo:    (future — self-hosted indexer matching on the beacon policy id)
+  # ogmios:  (future — websocket bridge to a cardano-node)
+  # cardano-node: (future — self-hosted preprod node; NEVER mainnet in MVP)
+
+volumes:
+  pgdata:
+  backend_node_modules:
+  frontend_node_modules:
+  root_node_modules:
+  root_node_modules_fe:

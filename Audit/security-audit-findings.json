@@ -1,0 +1,150 @@
+{
+  "audit": {
+    "target": "cardano-p2p-beacon-dex",
+    "auditor": "Claude Fable 5 (adversarial)",
+    "date": "2026-07-13",
+    "toolchain": { "aiken": "v1.1.23", "stdlib": "v2.2.0", "node": "v20.20.2" },
+    "test_baseline": {
+      "aiken_stock_tests_passed": 130,
+      "aiken_audit_tests_passed": 5,
+      "backend_vitest_passed": 120
+    },
+    "verdict": "PREPROD TESTING ONLY",
+    "on_chain_value_theft_found": false
+  },
+  "findings": [
+    {
+      "id": "F-01",
+      "title": "Signed transaction not verified against preview (backend trusted for taker/creator funds)",
+      "severity": "High",
+      "severity_scope": "malicious/compromised backend or MITM; contracts remain safe",
+      "confidence": "High",
+      "category": "backend-trust",
+      "affected_files": [
+        "frontend/hooks/useTxFlow.ts",
+        "frontend/components/TransactionPreview.tsx",
+        "backend/src/services/tx-builder.ts"
+      ],
+      "affected_function": "useTxFlow.confirmAndSign / TransactionPreview.decodeFeeLovelace",
+      "intended_invariant": "I9 preview truthfulness: the signed tx does what the preview claims",
+      "attack": "Frontend signs backend-provided CBOR verbatim and renders a backend-provided summary; only the fee is decoded from the real tx. A hostile backend returns a benign summary with a CBOR that routes the taker's/creator's own wallet UTxOs to attacker outputs or a hostile change address. On-chain value conservation permits it because the signer authors the tx; validators only pin the seller's payment.",
+      "concrete_example": "Take order shows 'pay 50 tADA, receive TOKEN'; CBOR sets change address to attacker so the user's whole wallet drains. Only the wallet dialog reveals it.",
+      "actual_result": "Validators accept the tx; taker robbed; no client-side check besides wallet UI (documented as a known gap).",
+      "impact": "Theft of taker/creator funds under backend compromise. Sellers unaffected.",
+      "proof_of_concept": "Direct code path: confirmAndSign -> signAndSubmit(wallet, state.tx.unsignedTxCborHex) with no re-derivation; STANDARD_WARNINGS and TransactionPreview comment acknowledge it.",
+      "regression_test": "Frontend test that decodes returned CBOR and asserts all non-fee/non-change outputs, change address, and mint match the summary; reject on mismatch (not yet present).",
+      "recommended_fix": "Client-side decode the unsigned CBOR before signing and assert change==wallet change, every external output matches a summary line (addr+value+datum incl PaymentTag), and mint==summary beacon set; reject otherwise. Add reproducible-build script-hash attestation."
+    },
+    {
+      "id": "F-02",
+      "title": "Mint policy does not bound ask asset identifier length -> unfillable order-book spam",
+      "severity": "Low",
+      "confidence": "High",
+      "category": "malformed-asset-identifier",
+      "affected_files": [
+        "contracts/lib/p2p_dex/beacon_rules.ak",
+        "backend/src/services/order-indexer.ts"
+      ],
+      "affected_function": "beacon_rules.mint_beacons_ok",
+      "intended_invariant": "I7/I10 only real, fillable, correctly-formed orders enter the book",
+      "attack": "The ask asset is never held in the order UTxO, so mint_beacons_ok never checks datum.ask.policy_id (28B) or datum.ask.asset_name (<=32B) length. A raw creation tx (bypassing backend, which caps at 32B) creates an order asking for a non-existent asset (e.g. 40-byte name). It mints and indexes but can never be taken.",
+      "concrete_example": "ask={policy_id:<28B>, asset_name:0xaabb...(40 bytes)}, ask_amount=1, offer 100 TOKA, deposit 3.5 ADA -> mints, shows on pair, never fillable.",
+      "actual_result": "mint_beacons_ok returns True (proved).",
+      "impact": "Order-book pollution/griefing; degraded UX. Not theft (offer side is bounded by real assets). Deposit-limited.",
+      "proof_of_concept": "Audit/regression-tests/audit_fable5_tests.ak :: audit_oversized_ask_asset_name_mints_unfillable_order (passes = accepted).",
+      "regression_test": "Same test; a fix should flip it to fail.",
+      "recommended_fix": "In mint_beacons_ok require (is_ada(ask) || bytearray.length(ask.policy_id)==28) and bytearray.length(ask.asset_name)<=32 (and same for offer for defense-in-depth)."
+    },
+    {
+      "id": "F-03",
+      "title": "Permissionless order creation allows owner-attribution spoofing",
+      "severity": "Low",
+      "confidence": "High",
+      "category": "owner-credential-spoofing",
+      "affected_files": ["contracts/lib/p2p_dex/beacon_rules.ak"],
+      "affected_function": "beacon_rules.mint_beacons_ok",
+      "intended_invariant": "I10 correct owner attribution",
+      "attack": "mint_beacons_ok never checks the named owner signed, so an attacker mints a well-formed order attributed to an arbitrary victim's staking key (OwnerBeacon + My Orders), at the victim's personal order address.",
+      "concrete_example": "owner=VerificationKey(<victim stake key>), payment_address=<attacker>; order appears under victim's My Orders.",
+      "actual_result": "mint_beacons_ok returns True (proved).",
+      "impact": "UI-level impersonation / My Orders pollution. Self-limiting: victim can cancel and keep attacker-funded offer+deposit. Not fund theft.",
+      "proof_of_concept": "Audit/regression-tests/audit_fable5_tests.ak :: audit_permissionless_creation_spoofs_owner (passes).",
+      "regression_test": "Same test.",
+      "recommended_fix": "If attribution integrity matters, require list.has(self.extra_signatories, owner_key_hash) at mint (note: removes the permissionless-liquidity property; decide deliberately) or label externally-created orders in the UI."
+    },
+    {
+      "id": "F-04",
+      "title": "Route/arbitrage planners do not exclude the taker's own orders -> wash/self-fill",
+      "severity": "Informational",
+      "confidence": "High",
+      "category": "self-trading",
+      "affected_files": [
+        "backend/src/services/smart-fill.ts",
+        "backend/src/services/arbitrage.ts"
+      ],
+      "affected_function": "planSmartFill / findArbitrage",
+      "intended_invariant": "I10 meaningful routing",
+      "attack": "Neither planner filters candidates by owner; a user can be routed to take their own orders, producing wash volume and misleading average prices. On-chain valid, no fund risk.",
+      "concrete_example": "User with open sell orders runs Smart Fill on the same pair and is routed into their own liquidity.",
+      "actual_result": "Self-fill legs are planned and executable.",
+      "impact": "Wash trading, inflated volume metrics, misleading route economics. No theft.",
+      "proof_of_concept": "Code review: no ownerStakeCredential filter in candidate selection.",
+      "regression_test": "Planner test asserting own orders are excluded when caller owner is provided.",
+      "recommended_fix": "Pass the connected owner stake key into the planners; drop candidates whose ownerStakeCredential matches; warn on self-fill."
+    },
+    {
+      "id": "F-05",
+      "title": "Order discovery cost scales with self-fundable spam flood -> indexer/provider DoS",
+      "severity": "Informational",
+      "confidence": "Medium",
+      "category": "denial-of-service",
+      "affected_files": ["backend/src/services/order-indexer.ts"],
+      "affected_function": "OrderIndexer.doSync",
+      "intended_invariant": "availability of discovery",
+      "attack": "Discovery fetches all OrderBeacon holders then per-holder UTxOs; a griefer minting many orders across many personal addresses multiplies provider calls per sync.",
+      "concrete_example": "Thousands of cheap orders (F-02/F-03 make each distinct+cheap) inflate Blockfrost usage.",
+      "actual_result": "Higher provider load / staler book; deposit is the only limiter.",
+      "impact": "Provider quota exhaustion / slow book. Cache-only; builder re-validates on-chain. No fund risk.",
+      "proof_of_concept": "Design analysis (not load-tested).",
+      "regression_test": "n/a",
+      "recommended_fix": "Paginate/cap holders per sync, keep the confirmed-open short-circuit, rate-limit."
+    }
+  ],
+  "suspected": [
+    {
+      "id": "S-1",
+      "title": "Partial fill can strand an ADA-offer continuation below ledger min-UTxO",
+      "severity": "Low",
+      "confidence": "Medium",
+      "note": "Ledger-level rejection (liveness), not theft; add a builder guard rejecting partials that would underfund the continuation."
+    },
+    {
+      "id": "S-2",
+      "title": "Reference-script UTxO trust",
+      "severity": "Informational",
+      "confidence": "High",
+      "note": "Wrong/malicious reference script is caught by the ledger (hash must match order address). Deployment-hygiene note only."
+    },
+    {
+      "id": "S-3",
+      "title": "Indexer classifySpend does not sort beacon-bearing outputs before rank pairing",
+      "severity": "Informational",
+      "confidence": "Medium",
+      "note": "Relies on provider output ordering; backfillAncestry sorts, classifySpend does not. Cache-only; add a sort for parity."
+    }
+  ],
+  "attacks_attempted_that_failed": [
+    "double satisfaction via one shared payment (stock + novel doubled-value variant)",
+    "untagged / wrong-tagged / duplicate-tagged payment",
+    "underpay / wrong asset / foreign asset in payment / short deposit return",
+    "beacon leakage to change/seller/continuation on cancel and take",
+    "smuggling a cancel into a batched take",
+    "twin partials sharing/swapping one continuation",
+    "continuation datum drift (owner/pair/payment/version/flag/expiration/amounts)",
+    "partial underpay by one / exhausting ask / zero / negative / >= offer take",
+    "mixed batch leaving a full-take order's beacons unburned",
+    "minting extra/duplicate beacons, two orders per creation, beacons to wrong address/hash",
+    "counterfeit beacons under a different policy (invisible/inert)",
+    "taker-favoring rounding via split fills (ceil always favors seller; telescoping exact)"
+  ]
+}

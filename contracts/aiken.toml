@@ -1,0 +1,14 @@
+# Verified: compiles + tests pass with aiken v1.1.23 / stdlib v2.2.0.
+# NOTE for aarch64-linux dev containers: aikup ships no binary — use the npm
+# distribution instead (`npm i -D @aiken-lang/aiken`). See contracts/README.md.
+name = "p2p-dex/contracts"
+version = "0.1.0"
+compiler = "v1.1.23"
+plutus = "v3"
+license = "Apache-2.0"
+description = "Order spending validator + beacon minting policy for the Cardano P2P beacon DEX (preprod MVP)"
+
+[[dependencies]]
+name = "aiken-lang/stdlib"
+version = "v2.2.0"
+source = "github"
