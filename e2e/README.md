@@ -20,6 +20,8 @@ npx tsx e2e/smoke.ts              # runs the full create -> take -> cancel test
 npx tsx e2e/smoke-take-many.ts    # v2: two orders taken in ONE atomic tx
 npx tsx e2e/smoke-take-partial.ts # v3: partial fill -> continuation -> final fill
 npx tsx e2e/smoke-take-mixed.ts   # v3: twin partials + full fill in one atomic tx
+
+npx tsx e2e/topup-wallet-b.ts     # one-off: move tADA from wallet A to wallet B
 ```
 
 The smoke test (docs/deployment.md §5):
@@ -43,14 +45,22 @@ a Plutus script); the harness self-heals this with a one-off ADA
 self-transfer if none exists (`ensureCollateral`), same as a real CIP-30
 wallet does behind the scenes.
 
-## Status: PASSED on preprod (2026-07-07)
+## Status: PASSED on preprod — protocol v3 is live-verified
 
-A full run confirmed every check, including all payment/beacon/deposit
-exactness rules and stake-key authorization. **Four real bugs were found and
-fixed** in the process — none reachable by unit tests, since each depends on
-actual Blockfrost/Mesh/ledger behavior. Full writeup:
-[docs/open-questions.md](../docs/open-questions.md) #25 (a–d) and
-[docs/security.md](../docs/security.md) §0.1. Summary:
+All four smoke tests pass against real preprod: v1 create/take/cancel
+(`smoke.ts`, first passed 2026-07-07), v2 atomic batched takes
+(`smoke-take-many.ts`), and v3 partial fills — continuation lineage
+(`smoke-take-partial.ts`) and mixed partial+full batches
+(`smoke-take-mixed.ts`). Every on-chain assertion held: exact beacon set,
+exact deposit, exact payment/continuation output, beacon burn/reassert,
+stake-key authorization, correct balance deltas
+([docs/deployment.md](../docs/deployment.md) §0 pins the live epoch —
+order validator `1757ecd8…6f8b`, beacon policy `c14dc44e…8702`).
+
+**Four real bugs were found and fixed** during the original v1 run — none
+reachable by unit tests, since each depends on actual Blockfrost/Mesh/ledger
+behavior. Full writeup: [docs/open-questions.md](../docs/open-questions.md)
+#25 (a–d) and [docs/security.md](../docs/security.md) §0.1. Summary:
 
 1. A collateral UTxO could be silently reused as a spending input
    (`NoCollateralInputs` on submission) — fixed in `tx-builder.ts`.
@@ -76,15 +86,19 @@ and rerunning skips anything already recorded (checked via `txHash`
 presence, not just the derived `orderId`, since a crash can happen between
 submission and order-id resolution).
 
-All four scripts use the same **20 `mm-0`…`mm-19` wallets**
-(`e2e/wallets/mm/mm-*.json`) as the market-maker pool, funded from
-`wallet-a-seller` / `wallet-b-taker`. They target whichever protocol version
-was live when written — check each script's `allowPartialFill` usage and the
-`docs/deployment.md` script-hash epoch before rerunning against a
+The four `create-mm-*` / `create-*-market*` scripts below use the same **20
+`mm-0`…`mm-19` wallets** (`e2e/wallets/mm/mm-*.json`) as the market-maker pool,
+funded from `wallet-a-seller` / `wallet-b-taker`. They target whichever protocol
+version was live when written — check each script's `allowPartialFill` usage and
+the `docs/deployment.md` script-hash epoch before rerunning against a
 newly-redeployed contract, since old orders under a stale beacon policy
 become invisible to the indexer (not an error, just orphaned value the owner
 can still cancel).
 
+- **`create-smart-fill-orders.ts`** — 20 open TESTA/lovelace orders with a real
+  price spread, so Smart Fill has a book to route across. Unlike the four
+  below, the sellers are the **smoke wallets** (`e2e/wallets/`), not the mm
+  pool; the intended taker is an external wallet (e.g. Eternl).
 - **`create-market-maker-orders.ts`** — first pass: 20 wallets, 10 sell +
   10 buy TESTA/ADA orders, ±10% around a 65,000 lovelace/TESTA mid price, no
   self-crossing.

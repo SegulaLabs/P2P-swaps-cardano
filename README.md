@@ -3,22 +3,27 @@
 A peer-to-peer, order-book style trading DApp on Cardano, built on the
 **distributed-DApp / beacon-token** pattern (CIP-0089, fallen-icarus style).
 
-> **Status: protocol v2 (atomic TakeManyOrders) implemented, preprod only,
-> NOT audited.** All local validation passes (85 Aiken tests, 85 backend
-> tests, 33 frontend tests, full typecheck + builds). Live preprod smoke
-> tests passed for both v1 (create/take/cancel — open-questions #25) and v2
-> (two orders taken atomically in one tx — docs/take-many-orders.md §10).
+> **Status: protocol v3 (opt-in partial fills) implemented, preprod only,
+> NOT externally audited.** All local validation passes (130 Aiken tests, 120
+> backend tests, 66 frontend tests, full typecheck + builds). Live preprod
+> smoke tests passed for v1 (create/take/cancel), v2 (many orders taken
+> atomically in one tx) and v3 (partial fill → continuation → final fill, and
+> mixed partial+full batches). An in-repo adversarial security audit
+> ([Audit/](Audit/security-audit-fable5.md), 2026-07-13) found the on-chain
+> trust boundary strong and **no way to steal locked value**; its one High
+> finding (F-01) is off-chain and gates any use beyond preprod.
 
 ## What this is / is not
 
 | It is | It is not |
 |---|---|
 | A P2P order book: every order is its own UTxO | An AMM / liquidity-pool DEX |
-| Non-custodial: funds sit in order UTxOs governed by audited-scope validators | A platform that ever holds user funds |
+| Non-custodial: funds sit in order UTxOs governed by on-chain validators | A platform that ever holds user funds |
 | Beacon tokens make orders discoverable on-chain | An off-chain order book |
 | Browser wallet (CIP-30) signs every transaction | A backend that ever sees a private key |
-| Full-fill fixed spot orders (create / cancel / take) | Partial fills, market-maker orders, UpdateOrder |
-| **Cardano preprod only** | Mainnet (blocked by boot guards, badges, and policy) |
+| Fixed spot orders: create / cancel / take, batched atomically | Market-maker two-way orders, UpdateOrder |
+| **Opt-in** partial fills (seller sets `allowPartialFill`) | Forced partial fills — full-fill-only orders stay full-fill-only |
+| **Cardano preprod only** | Mainnet (blocked by boot guards, badges, policy, and the F-01 audit finding) |
 
 ## How it works
 
@@ -27,33 +32,53 @@ five **beacon tokens** in a UTxO at the order validator address (validator
 payment credential + the owner's staking credential — CIP-0089 personal
 addresses). Since spending validators don't run at creation, the **beacon
 minting policy** enforces creation correctness: beacons only mint into
-well-formed order outputs. Discovery = querying the chain for beacons. Taking
-pays the seller exactly the asked amount plus the returned deposit in one
-exact output; cancelling needs the owner's staking-key signature; **every
-spend must leave zero beacons in the tx outputs** (forcing the burn and
-preventing leakage). Protocol v2 (**TakeManyOrders**) lets one transaction
-take many orders **atomically**: each order's payment output carries an
-inline `PaymentTag` naming the consumed order, so the order→payment mapping
-is 1:1 and double satisfaction stays closed
-([docs/take-many-orders.md](docs/take-many-orders.md)). Full spec:
+well-formed order outputs. Discovery = querying the chain for beacons.
+Cancelling needs the owner's staking-key signature; **every full spend must
+leave zero beacons in the tx outputs** (forcing the burn and preventing
+leakage).
+
+Three redeemers settle an order:
+
+- **TakeOrder** (full fill) — the seller is paid exactly the asked amount plus
+  the returned deposit in one exact output, and all five beacons burn.
+- **TakeOrderPartial** (v3, opt-in) — a taker consumes part of the offer, pays
+  `ceil(take_amount × ask / offer)`, and recreates the order as a
+  **continuation** UTxO carrying the deposit, the remaining offer, all five
+  beacons and the proportionally reduced datum
+  ([docs/partial-fills.md](docs/partial-fills.md)).
+- **CancelOrder** — the owner reclaims everything; beacons burn.
+
+One transaction may settle **many orders atomically** (v2 **TakeManyOrders**):
+each order's payment output carries an inline `PaymentTag` naming the consumed
+order, so the order→payment mapping stays 1:1 and double satisfaction stays
+closed ([docs/take-many-orders.md](docs/take-many-orders.md)). Two off-chain
+layers build on that, with **zero contract changes**: **smart fill** routes one
+intent across multiple orders ([docs/smart-fill.md](docs/smart-fill.md)), and
+**arbitrage** detects profitable cycles over the open book
+([docs/arbitrage.md](docs/arbitrage.md)). Full spec:
 [docs/protocol-spec.md](docs/protocol-spec.md) +
 [docs/mvp-contract-decisions.md](docs/mvp-contract-decisions.md).
 
-Script identities (current build, aiken↔Mesh cross-checked):
-`order validator 4d0a1335…94b8`, `beacon policy a88c60a8…c9b0` (protocol v2 — atomic TakeManyOrders).
+Script identities (current build — protocol v3, aiken↔Mesh cross-checked):
+`order validator 1757ecd8…6f8b`, `beacon policy c14dc44e…8702`.
+Prior epochs (orders under them are orphaned, still cancellable): v2
+`4d0a1335…94b8` / `a88c60a8…c9b0`, v1 `89389051…46ab` / `264ed623…cc0a`.
 
 ## Repository layout
 
 ```
 contracts/   Aiken: order validator + beacon policy (rules in lib/, tested)
 backend/     Fastify TS: Blockfrost provider, beacon indexer, Mesh unsigned-tx
-             builder, PostgreSQL cache (in-memory fallback for dev)
-frontend/    Next.js + Mesh React: wallet connect, order book, create/take/
-             cancel flows with mandatory TransactionPreview
+             builder, smart-fill + arbitrage planners, PostgreSQL cache
+             (in-memory fallback for dev)
+frontend/    Next.js + Mesh React: wallet connect, order book, trade/create/
+             cancel/arbitrage flows with mandatory TransactionPreview
+e2e/         live preprod harness: smoke tests (v1/v2/v3) + market seeding
 infra/       docker-compose: PostgreSQL (+ optional app profile); Kupo/Ogmios
              placeholders for the self-hosted future
 docs/        protocol spec, decisions, eUTxO notes, beacons, security,
              deployment, open questions
+Audit/       adversarial security audit: report, findings, regression tests
 ```
 
 ## Run it locally
@@ -77,8 +102,8 @@ Fund wallets at https://docs.cardano.org/cardano-testnets/tools/faucet.
 ## Validate
 
 ```bash
-npm run contracts:check   # 85 Aiken tests
-npm test                  # contracts + backend (85) + frontend (33)
+npm run contracts:check   # 130 Aiken tests (aiken v1.1.23 / stdlib v2.2.0)
+npm test                  # contracts + backend (120) + frontend (66)
 npm run typecheck
 npm run build             # backend tsc + frontend next build
 ```
@@ -92,20 +117,31 @@ npm run build             # backend tsc + frontend next build
    until you explicitly confirm.
 3. Your CIP-30 wallet signs and submits. The backend never sees a key — it
    refuses to boot if key-material env vars exist at all.
-4. Settlement rules (exact payment, deposit return, beacon burn, owner-only
-   cancel) are enforced by the **on-chain validators**, not by the backend:
-   a malicious backend cannot steal from a user who reviews what they sign.
+4. Settlement rules (exact payment, deposit return, beacon burn, continuation
+   correctness, owner-only cancel) are enforced by the **on-chain validators**,
+   not by the backend: a malicious backend cannot steal *from the seller* of an
+   order — but see F-01 below for what it can still do to **you, the signer**.
 
 ## Security warnings
 
-- **Experimental MVP. Not audited. Preprod only — never use mainnet funds.**
-- The transaction preview is backend-provided; independent client-side CBOR
-  decoding is not implemented yet (docs/open-questions.md #27). Read your
-  wallet's own display before signing.
+- **Experimental MVP. Not externally audited. Preprod only — never use
+  mainnet funds.**
+- **F-01 (High, from [Audit/](Audit/security-audit-fable5.md)):** the preview
+  is *backend-provided* — only the fee is decoded from the real transaction.
+  A malicious or compromised backend can show a benign summary while the
+  actual tx routes **your own** funds elsewhere. The validators protect the
+  *seller's* payment, not the party who signs. Independent client-side CBOR
+  decoding is not implemented yet (docs/open-questions.md #27). **Read your
+  wallet's own display before signing.**
+- Lower-severity audit findings (order-book spam via unbounded ask assets,
+  UI-level owner impersonation, self-fills in the route planners) are
+  griefing/hygiene issues — see the report and
+  [Audit/regression-tests/](Audit/regression-tests/README.md).
 - The chain is the source of truth; the order book is a cache. Two takers can
   race for one order — the loser's tx fails harmlessly.
 - Mainnet is out of scope until the gate in [docs/security.md](docs/security.md)
-  §5 (tests ✅, audit ❌, adversarial preprod soak ❌) is fully passed.
+  §5 (tests ✅, live preprod ✅, F-01 closed ❌, external audit ❌, adversarial
+  soak ❌) is fully passed.
 
 ## Docs
 
@@ -115,4 +151,5 @@ npm run build             # backend tsc + frontend next build
 [security](docs/security.md) · [deployment](docs/deployment.md) ·
 [smart-fill](docs/smart-fill.md) · [take-many-orders](docs/take-many-orders.md) ·
 [partial-fills](docs/partial-fills.md) · [arbitrage](docs/arbitrage.md) ·
-[open-questions](docs/open-questions.md)
+[open-questions](docs/open-questions.md) ·
+[security audit](Audit/security-audit-fable5.md)
