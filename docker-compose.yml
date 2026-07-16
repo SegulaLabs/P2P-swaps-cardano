@@ -64,10 +64,15 @@ services:
       context: .
       dockerfile: frontend/Dockerfile
       args:
-        # Inlined into the browser bundle at build time. Change only if the
-        # app is reached under a name other than localhost, then rebuild.
-        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:3001}
+        # Leave empty (default): the browser talks same-origin to the
+        # frontend, which proxies /backend/* to the backend container —
+        # works under any hostname/IP. Only set this to make the browser
+        # call a backend at a DIFFERENT address (baked in at build time).
+        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-}
     restart: unless-stopped
+    environment:
+      # Where the same-origin proxy forwards API calls (server-side, runtime).
+      BACKEND_INTERNAL_URL: http://backend:3001
     ports:
       - "${FRONTEND_PORT:-3000}:3000"
     depends_on:

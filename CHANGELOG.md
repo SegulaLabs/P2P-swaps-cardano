@@ -18,7 +18,9 @@ audited; never use mainnet funds.**
   fills with continuation orders (v3), smart fill routing, arbitrage
   scanner. Live-verified on preprod.
 - One-command self-hosting: `./ship.sh` (Node only) or
-  `docker compose up --build` (production images + PostgreSQL).
+  `docker compose up --build` (production images + PostgreSQL). The
+  frontend proxies API calls same-origin (`/backend/*`), so the site works
+  under any hostname or IP — home-lab friendly, no CORS configuration.
 - Release images published to GHCR on version tags.
 - In-repo adversarial security audit (`Audit/`): on-chain trust boundary
   strong, no way to steal locked value; open High finding **F-01**

@@ -3,10 +3,9 @@
 #   ghcr.io/<owner>/<repo>-backend:<version|latest>
 #   ghcr.io/<owner>/<repo>-frontend:<version|latest>
 #
-# Note: the frontend image inlines NEXT_PUBLIC_API_URL=http://localhost:3001
-# at build time, so the prebuilt image is for same-machine use (which is the
-# intended self-hosted setup). Hosting under another name? Build locally:
-#   docker compose build --build-arg NEXT_PUBLIC_API_URL=http://your-host:3001 frontend
+# The frontend serves a same-origin /backend/* proxy (target set at runtime
+# via BACKEND_INTERNAL_URL), so the prebuilt image works under any
+# hostname/IP — no per-host rebuild needed.
 name: release-images
 
 on:

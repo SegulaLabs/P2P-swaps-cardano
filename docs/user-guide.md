@@ -47,6 +47,11 @@ Same result: **http://localhost:3000**. Stop with `docker compose down`.
 (`down -v` also wipes the local order cache — harmless, it rebuilds from the
 chain.)
 
+Running it on a home server? Just open `http://<server-ip>:3000` from any
+device on your network — the browser talks only to the site itself (the
+frontend proxies API calls to the backend internally), so no extra
+configuration is needed. Don't expose the ports to the public internet.
+
 ## 3. Set up the wallet
 
 1. Install Eternl or Lace, create/restore a **throwaway test wallet** —
@@ -108,6 +113,9 @@ signature.
 - **Trading buttons return errors / 503** — no or wrong Blockfrost id. It
   must start with `preprod`. Fix via `./ship.sh --configure` (or `.env` for
   Docker) and restart.
+- **"Backend unreachable" banner** — the backend isn't running or crashed:
+  `docker compose ps` should show it healthy; `docker compose logs backend
+  --tail=30` shows why not (most often a bad Blockfrost id).
 - **Wallet won't connect or shows no funds** — the wallet is probably on
   mainnet or preview; switch it to **preprod**. Fund via the faucet.
 - **Port 3000/3001 already in use** — stop the other program, or (Docker)

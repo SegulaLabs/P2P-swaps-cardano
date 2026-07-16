@@ -4,11 +4,11 @@
 #   docker build -f frontend/Dockerfile .
 # Normally you don't run this by hand — the root docker-compose.yml does.
 #
-# NEXT_PUBLIC_* values are inlined into the browser bundle at BUILD time.
-# The defaults assume you browse the app on the same machine it runs on
-# (http://localhost:3000 → backend http://localhost:3001). Hosting it under
-# another name? Rebuild with:
-#   docker compose build --build-arg NEXT_PUBLIC_API_URL=http://your-host:3001 frontend
+# The browser talks same-origin to this server, which proxies /backend/* to
+# BACKEND_INTERNAL_URL (runtime env, set by docker-compose.yml) — so the app
+# works under any hostname/IP without rebuilding. NEXT_PUBLIC_API_URL stays
+# empty by default; set it at build time only to make browsers call a backend
+# at a different address than the site itself.
 
 # ---- runtime dependencies only (what ships in the final image) ----
 FROM node:20-alpine AS deps
@@ -24,7 +24,7 @@ COPY package.json package-lock.json ./
 COPY frontend/package.json frontend/
 RUN npm ci --workspace frontend --no-audit --no-fund
 COPY frontend/ frontend/
-ARG NEXT_PUBLIC_API_URL=http://localhost:3001
+ARG NEXT_PUBLIC_API_URL=
 ARG NEXT_PUBLIC_CARDANO_NETWORK=preprod
 ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL \
     NEXT_PUBLIC_CARDANO_NETWORK=$NEXT_PUBLIC_CARDANO_NETWORK

@@ -90,6 +90,7 @@ fi
 echo
 say "Starting Beacon DEX v$VERSION:"
 say "  frontend  http://localhost:3000   <- open this in the browser with your wallet"
+say "            (from another device: http://<this-machine-ip>:3000)"
 say "  backend   http://localhost:3001/health"
 say "Wallet: use a CIP-30 wallet (Eternl/Lace) set to PREPROD, funded from"
 say "the faucet: https://docs.cardano.org/cardano-testnets/tools/faucet"

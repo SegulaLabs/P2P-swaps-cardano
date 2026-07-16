@@ -14,7 +14,12 @@ import type {
  * only — signing always happens in the user's wallet (docs/security.md §1).
  */
 
-const API = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3001";
+// Default (unset/empty): same-origin "/backend" — the Next server proxies it
+// to the backend (rewrite in next.config.mjs, target BACKEND_INTERNAL_URL).
+// The site then works under ANY hostname or IP with no CORS and no rebuild.
+// Set NEXT_PUBLIC_API_URL only to hit a backend at a *different* address
+// than the site itself (baked into the bundle at build time).
+const API = process.env.NEXT_PUBLIC_API_URL || "/backend";
 
 export class ApiError extends Error {
   constructor(
