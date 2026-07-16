@@ -41,7 +41,11 @@ export default function HomePage() {
       {apiOk === false && (
         <div style={{ maxWidth: 480, margin: "0 auto" }}>
           <Callout label="OFFLINE" tone="warn">
-            Backend unreachable — start it with <code>npm run backend:dev</code>.
+            Backend unreachable at <code>{process.env.NEXT_PUBLIC_API_URL}</code>.
+            Is it running? Check <code>docker compose ps</code> (or restart{" "}
+            <code>./ship.sh</code>), make sure you opened{" "}
+            <code>http://localhost:3000</code> exactly, then see the
+            troubleshooting section of the user guide.
           </Callout>
         </div>
       )}
