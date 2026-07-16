@@ -90,6 +90,7 @@ describe("API (no provider)", () => {
     const res = await app.inject({ method: "GET", url: "/protocol/config" });
     const body = res.json();
     expect(body.network).toBe("preprod");
+    expect(body.appVersion).toMatch(/^\d+\.\d+\.\d+/);
     expect(body.orderValidatorHash).toMatch(/^[0-9a-f]{56}$/);
     expect(body.beaconPolicyId).toMatch(/^[0-9a-f]{56}$/);
     expect(body.orderBeaconNameHex).toBe("6f72646572");

@@ -14,7 +14,7 @@ import { AssetMetadataService } from "./services/asset-metadata.js";
 
 /**
  * Bootstrap. Degrades honestly:
- *  - no DATABASE reachable  -> in-memory cache (dev only; logged loudly)
+ *  - no DATABASE reachable  -> in-memory cache (ok for single-user; logged)
  *  - no Blockfrost key      -> read-only API; tx/indexer endpoints 503
  * Never holds keys, never signs (config.ts enforces this at boot).
  */
@@ -32,7 +32,10 @@ try {
   repo = new PgOrdersRepo(db);
 } catch (err) {
   console.warn(
-    `WARNING: database unreachable (${String(err)}) — using in-memory order cache (dev only, data is lost on restart)`
+    `NOTE: database unreachable (${String(err)}) — using the in-memory order cache. ` +
+      `This is fine for a personal single-user instance: the chain is the source of truth ` +
+      `and the cache re-syncs from Blockfrost on boot/Refresh. For a shared or 24/7 ` +
+      `deployment run PostgreSQL (docker compose up) to avoid re-indexing on every restart.`
   );
   await db.end().catch(() => {});
   db = null;

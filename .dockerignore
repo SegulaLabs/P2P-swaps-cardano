@@ -1,0 +1,20 @@
+# Docker build context = repo root (both Dockerfiles). Keep it lean: the
+# images need package manifests + backend/ + frontend/ sources only — the
+# compiled contract blueprint is committed at backend/src/protocol/plutus.json.
+.git
+node_modules
+**/node_modules
+**/.next
+**/dist
+**/tsconfig.tsbuildinfo
+contracts
+e2e
+Audit
+docs
+infra
+*.md
+**/.env
+**/.env.local
+**/.env.*.local
+*.log
+coverage

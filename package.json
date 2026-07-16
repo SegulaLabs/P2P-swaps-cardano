@@ -8,6 +8,7 @@
     "frontend"
   ],
   "scripts": {
+    "ship": "bash ship.sh",
     "contracts:check": "cd contracts && aiken check",
     "contracts:build": "cd contracts && aiken build && cd ../backend && npm run sync-blueprint",
     "backend:dev": "npm run dev --workspace backend",

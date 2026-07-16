@@ -1,0 +1,78 @@
+# Self-hosted one-command deployment (Cardano PREPROD only).
+#
+#   cp .env.example .env        # put your Blockfrost preprod project id in it
+#   docker compose up --build -d
+#
+# → frontend http://localhost:3000, backend http://localhost:3001.
+# Everything runs on YOUR machine; nobody operates this as a service for you.
+# PostgreSQL stays on the internal network (not published to the host) and is
+# only a cache — the chain is the source of truth, so the volume is safe to
+# wipe (docker compose down -v) at any time.
+#
+# For development (hot reload, host npm) use ./ship.sh or docs/development.md.
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-p2pdex}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-p2pdex-local}
+      POSTGRES_DB: ${POSTGRES_DB:-p2pdex}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      # Schema is applied on FIRST boot of the volume only; after schema
+      # changes: docker compose down -v && docker compose up (cache only).
+      - ./backend/src/db/schema.sql:/docker-entrypoint-initdb.d/001_schema.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-p2pdex} -d ${POSTGRES_DB:-p2pdex}"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  backend:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    restart: unless-stopped
+    environment:
+      CARDANO_NETWORK: preprod
+      PORT: 3001
+      CORS_ORIGIN: ${CORS_ORIGIN:-http://localhost:3000}
+      DATABASE_URL: postgres://${POSTGRES_USER:-p2pdex}:${POSTGRES_PASSWORD:-p2pdex-local}@postgres:5432/${POSTGRES_DB:-p2pdex}
+      # Required for trading — create a PREPROD project at https://blockfrost.io
+      BLOCKFROST_PROJECT_ID_PREPROD: ${BLOCKFROST_PROJECT_ID_PREPROD:?Set BLOCKFROST_PROJECT_ID_PREPROD in .env — free preprod project id from https://blockfrost.io}
+      PROTOCOL_VERSION: ${PROTOCOL_VERSION:-3}
+      # Optional cross-checks / tuning — see backend/.env.example for docs.
+      ORDER_VALIDATOR_HASH: ${ORDER_VALIDATOR_HASH:-}
+      BEACON_POLICY_ID: ${BEACON_POLICY_ID:-}
+      REFERENCE_SCRIPT_TX_ID: ${REFERENCE_SCRIPT_TX_ID:-}
+      REFERENCE_SCRIPT_INDEX: ${REFERENCE_SCRIPT_INDEX:-0}
+    ports:
+      - "${BACKEND_PORT:-3001}:3001"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:3001/health >/dev/null"]
+      interval: 10s
+      timeout: 3s
+      retries: 10
+
+  frontend:
+    build:
+      context: .
+      dockerfile: frontend/Dockerfile
+      args:
+        # Inlined into the browser bundle at build time. Change only if the
+        # app is reached under a name other than localhost, then rebuild.
+        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:3001}
+    restart: unless-stopped
+    ports:
+      - "${FRONTEND_PORT:-3000}:3000"
+    depends_on:
+      backend:
+        condition: service_healthy
+
+volumes:
+  pgdata:

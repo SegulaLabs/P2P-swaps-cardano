@@ -199,6 +199,8 @@ export interface ArbitrageScan {
 
 export interface ProtocolConfig {
   network: "preprod";
+  /** Release version of this self-hosted app (backend/package.json). */
+  appVersion: string;
   protocolVersion: number;
   orderValidatorHash: string;
   beaconPolicyId: string;

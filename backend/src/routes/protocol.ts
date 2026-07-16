@@ -2,6 +2,7 @@ import type { FastifyInstance } from "fastify";
 import type { AppDeps } from "../app.js";
 import { ORDER_BEACON_NAME_HEX } from "../protocol/beacons.js";
 import type { ProtocolConfig, ReferenceScriptInfo } from "../types.js";
+import { APP_VERSION } from "../version.js";
 
 /**
  * GET /protocol/config             — validator hash, beacon policy, version
@@ -14,6 +15,7 @@ export async function protocolRoutes(
   app.get("/protocol/config", async (): Promise<ProtocolConfig> => {
     return {
       network: "preprod",
+      appVersion: APP_VERSION,
       protocolVersion: deps.config.PROTOCOL_VERSION,
       orderValidatorHash: deps.scripts.orderValidatorHash,
       beaconPolicyId: deps.scripts.beaconPolicyId,

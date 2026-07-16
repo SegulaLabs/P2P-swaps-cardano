@@ -37,6 +37,7 @@ export default function RootLayout({
           </header>
           <main className="main">{children}</main>
           <footer className="site-footer">
+            Beacon DEX v{process.env.NEXT_PUBLIC_APP_VERSION} —
             Experimental MVP — Cardano <strong>preprod only</strong>, not
             audited, never use mainnet funds. Non-custodial: your wallet signs
             everything; the backend never sees a key. Settlement rules are

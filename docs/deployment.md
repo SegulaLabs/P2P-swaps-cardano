@@ -4,6 +4,11 @@
 > covers Cardano **preprod** exclusively. See [security.md](security.md) §5 for
 > the gate that must pass before mainnet is even discussed.
 
+> Just want to *run* the app? That's `./ship.sh` or `docker compose up
+> --build` — see the README quickstart and [user-guide.md](user-guide.md).
+> This page covers protocol-level deployment (contracts, reference scripts,
+> live verification).
+
 ## 0. Current status
 
 **Protocol v3 (partial fills) is LIVE-VERIFIED on preprod.** Validators pass

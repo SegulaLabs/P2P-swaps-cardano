@@ -74,32 +74,52 @@ backend/     Fastify TS: Blockfrost provider, beacon indexer, Mesh unsigned-tx
 frontend/    Next.js + Mesh React: wallet connect, order book, trade/create/
              cancel/arbitrage flows with mandatory TransactionPreview
 e2e/         live preprod harness: smoke tests (v1/v2/v3) + market seeding
-infra/       docker-compose: PostgreSQL (+ optional app profile); Kupo/Ogmios
-             placeholders for the self-hosted future
-docs/        protocol spec, decisions, eUTxO notes, beacons, security,
-             deployment, open questions
+infra/       dev docker-compose: PostgreSQL only; Kupo/Ogmios placeholders
+             for the self-hosted future
+docs/        user guide, development setup, protocol spec, decisions, eUTxO
+             notes, beacons, security, deployment, open questions
 Audit/       adversarial security audit: report, findings, regression tests
+
+ship.sh             one-command launcher (configure → build → start)
+docker-compose.yml  one-command Docker deployment (production images)
 ```
 
-## Run it locally
+## Run your own copy (quickstart)
+
+This app is **self-hosted by design** — nobody operates it as a service.
+Clone it, run one command, trade with your own browser wallet. The only
+thing you need is a free **Blockfrost preprod** project id
+(https://blockfrost.io — your personal connection to the chain).
+
+**One command, no Docker** (needs Node.js ≥ 20):
 
 ```bash
-npm install                                    # root: workspaces + aiken + tooling
-cp .env.example .env
-docker compose -f infra/docker-compose.yml --env-file .env up -d   # postgres
-
-cp backend/.env.example backend/.env           # ← add BLOCKFROST_PROJECT_ID_PREPROD
-cp frontend/.env.example frontend/.env.local
-
-npm run dev                                    # backend :3001 + frontend :3000
+git clone <this-repo> && cd cardano-p2p-beacon-dex
+./ship.sh        # first run asks for your Blockfrost id, then builds + starts
 ```
 
-**Blockfrost (required for trading):** create a **preprod** project at
-https://blockfrost.io and put its id (starts with `preprod`) in
-`backend/.env`. Without it the app runs read-only (tx endpoints return 503).
-Fund wallets at https://docs.cardano.org/cardano-testnets/tools/faucet.
+**Or all-Docker:**
 
-## Validate
+```bash
+git clone <this-repo> && cd cardano-p2p-beacon-dex
+cp .env.example .env          # put your Blockfrost id in it
+docker compose up --build -d  # production images + PostgreSQL cache
+```
+
+Either way: open **http://localhost:3000**, connect a CIP-30 wallet
+(Eternl/Lace) set to **preprod**, funded from the official faucet
+(https://docs.cardano.org/cardano-testnets/tools/faucet).
+
+Full operating instructions, wallet setup and troubleshooting:
+**[docs/user-guide.md](docs/user-guide.md)**. The version you run is shown
+in the site footer and on `GET /health` ([CHANGELOG.md](CHANGELOG.md)).
+Prebuilt images are published to GHCR on release tags
+(`.github/workflows/release-images.yml`).
+
+## Develop / validate
+
+Contributor setup (dev servers, Aiken toolchain, contracts rebuild,
+releasing): **[docs/development.md](docs/development.md)**.
 
 ```bash
 npm run contracts:check   # 130 Aiken tests (aiken v1.1.23 / stdlib v2.2.0)
@@ -147,6 +167,8 @@ npm run build             # backend tsc + frontend next build
 
 ## Docs
 
+[user-guide](docs/user-guide.md) ·
+[development](docs/development.md) ·
 [protocol-spec](docs/protocol-spec.md) ·
 [mvp-contract-decisions](docs/mvp-contract-decisions.md) ·
 [eutxo](docs/eutxo.md) · [beacons](docs/beacons.md) ·

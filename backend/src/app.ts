@@ -14,6 +14,7 @@ import { arbitrageRoutes } from "./routes/arbitrage.js";
 import { protocolRoutes } from "./routes/protocol.js";
 import { txRoutes } from "./routes/tx.js";
 import { assetsRoutes } from "./routes/assets.js";
+import { APP_VERSION } from "./version.js";
 
 /**
  * App factory with injected dependencies so tests can run the full HTTP
@@ -41,6 +42,7 @@ export async function buildApp(deps: AppDeps): Promise<FastifyInstance> {
 
   app.get("/health", async () => ({
     status: "ok",
+    appVersion: APP_VERSION,
     network: deps.config.CARDANO_NETWORK, // always "preprod" (config guard)
     custody: "none",
     provider: deps.provider?.name ?? "not-configured",
