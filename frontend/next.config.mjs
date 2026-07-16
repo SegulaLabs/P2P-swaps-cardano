@@ -12,15 +12,10 @@ const nextConfig = {
   env: {
     NEXT_PUBLIC_APP_VERSION: version,
   },
-  // Same-origin API proxy: the browser calls /backend/* on this server and
-  // never needs to know the backend's address (no CORS, works under any
-  // hostname/IP). BACKEND_INTERNAL_URL is read at SERVER START, not baked
-  // into the bundle — in docker compose it's http://backend:3001.
-  async rewrites() {
-    const backend =
-      process.env.BACKEND_INTERNAL_URL || "http://localhost:3001";
-    return [{ source: "/backend/:path*", destination: `${backend}/:path*` }];
-  },
+  // Same-origin API proxying lives in app/backend/[...path]/route.ts — a
+  // route handler, NOT a rewrite here, because rewrites are frozen into the
+  // build manifest at `next build` time while BACKEND_INTERNAL_URL must be
+  // read at runtime (docker compose sets it to http://backend:3001).
   // @meshsdk/core ships WebAssembly (cardano-serialization internals).
   webpack: (config) => {
     config.experiments = {

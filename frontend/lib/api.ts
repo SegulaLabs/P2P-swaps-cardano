@@ -15,8 +15,8 @@ import type {
  */
 
 // Default (unset/empty): same-origin "/backend" — the Next server proxies it
-// to the backend (rewrite in next.config.mjs, target BACKEND_INTERNAL_URL).
-// The site then works under ANY hostname or IP with no CORS and no rebuild.
+// to the backend (app/backend/[...path]/route.ts, target BACKEND_INTERNAL_URL
+// read per request). Works under ANY hostname or IP, no CORS, no rebuild.
 // Set NEXT_PUBLIC_API_URL only to hit a backend at a *different* address
 // than the site itself (baked into the bundle at build time).
 const API = process.env.NEXT_PUBLIC_API_URL || "/backend";
