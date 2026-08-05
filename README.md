@@ -10,7 +10,7 @@
 [![Docker](https://img.shields.io/badge/docker-ready-2496ED?style=flat-square&logo=docker&logoColor=white)](docker-compose.yml)
 [![Cardano preprod](https://img.shields.io/badge/Cardano-preprod-0033AD?style=flat-square&logo=cardano&logoColor=white)](docs/user-guide.md)
 
-<img src=".github/assets/trade-preview.png" alt="Beacon DEX swap card — spend tADA, receive TESTB, atomic on-chain fill" width="520">
+<img src=".github/assets/trade-preview.png" alt="Beacon DEX swap card — spend tADA, receive TESTB, atomic on-chain fill" width="1400">
 
 **[Quick Start](#-quick-start)** · **[How It Works](#%EF%B8%8F-how-it-works)** · **[Docs](#-docs)** · **[Security](#%EF%B8%8F-security-warnings)** · **[Contributing](#-contributing)**
 
