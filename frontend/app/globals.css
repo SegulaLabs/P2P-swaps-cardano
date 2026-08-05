@@ -516,8 +516,13 @@ tr.partial-row > td { padding: 0; background: var(--panel-2); }
 
 /* ----------------------------------------------------- forms */
 form label, .advanced label { display: block; margin: 0.6rem 0 0.25rem; font-size: 0.85rem; color: var(--muted); }
+/* !important: a bundled dependency's Tailwind Preflight reset (loaded in a
+   later chunk, e.g. @meshsdk/react's wallet-connect modal) sets
+   `button,input,optgroup,select,textarea{padding:0}` at equal specificity —
+   whichever loads last otherwise wins the tie, so this can't be left to
+   cascade order. */
 input, select {
-  padding: 0.65rem 0.95rem;
+  padding: 0.65rem 0.95rem !important;
   border: 1px solid var(--border);
   border-radius: 12px;
   width: 100%;
@@ -563,10 +568,16 @@ button.secondary { background: var(--panel-2); border: 1px solid var(--border); 
 .trade-layout { display: grid; grid-template-columns: minmax(0, 1fr) 380px; gap: 1.2rem; align-items: start; }
 .trade-books { min-width: 0; }
 .trade-side {
-  /* Sticks just below the nav and moves as ONE unit (trade panel + markets).
-     No inner scrollbar: it stays put while you scroll the book, and only
-     travels once you scroll past it — never scrolls independently. */
+  /* Sticks just below the nav. Bounded to the viewport with its OWN
+     scrollbar: without this, if the panel + markets list together were
+     taller than the screen, the excess was simply clipped off-screen —
+     since a sticky element doesn't scroll internally, the only way to
+     reach it was to scroll the (potentially huge, hundreds-of-rows) order
+     book almost to its very end to release the sticky pin. Now the rail
+     scrolls on its own the moment the cursor is over it. */
   position: sticky; top: calc(var(--header-h) + 0.75rem);
+  max-height: calc(100vh - var(--header-h) - 1.5rem);
+  overflow-y: auto;
   display: flex; flex-direction: column; gap: 1rem;
 }
 /* fill the rail instead of the home page's centered 480px card */

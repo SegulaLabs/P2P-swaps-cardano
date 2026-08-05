@@ -641,12 +641,8 @@ function MarketTab({
       )}
 
       <p className="muted small" style={{ marginTop: "0.75rem" }}>
-        Type an amount on <em>either</em> side — we fill the cheapest existing
-        orders first and compute the other side. Selected orders are combined
-        into <strong>atomic transactions</strong> (up to{" "}
-        {route?.maxOrdersPerTx ?? 8} orders each): everything in a transaction
-        fills together or none of it does. Orders that allow it may be{" "}
-        <strong>filled partially</strong> at the same price.
+        Type an amount on <em>either</em> side — fills the cheapest orders
+        first, atomically (up to {route?.maxOrdersPerTx ?? 8} per tx).
       </p>
     </div>
   );
