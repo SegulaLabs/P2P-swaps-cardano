@@ -178,6 +178,15 @@ export interface ProtocolConfigResponse {
   derivationScheme: string;
 }
 
+/** Runtime chain-provider config — GET/PUT /settings. */
+export interface ChainProviderSettings {
+  provider: "blockfrost" | "koios";
+  blockfrostProjectId: string;
+  koiosApiToken: string;
+  /** The live provider name in use right now, or null if unconfigured. */
+  active: string | null;
+}
+
 /** Minimal Mesh UTxO shape shipped to the backend for coin selection. */
 export interface WalletUtxo {
   input: { txHash: string; outputIndex: number };

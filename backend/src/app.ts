@@ -7,6 +7,7 @@ import type { TxBuilder } from "./services/tx-builder.js";
 import type { OrderIndexer } from "./services/order-indexer.js";
 import type { AssetMetadataService } from "./services/asset-metadata.js";
 import type { ProtocolScripts } from "./protocol/blueprint.js";
+import type { SettingsStore, ChainProviderSettings } from "./services/settings-store.js";
 import { pairsRoutes } from "./routes/pairs.js";
 import { ordersRoutes } from "./routes/orders.js";
 import { smartFillRoutes } from "./routes/smart-fill.js";
@@ -14,6 +15,7 @@ import { arbitrageRoutes } from "./routes/arbitrage.js";
 import { protocolRoutes } from "./routes/protocol.js";
 import { txRoutes } from "./routes/tx.js";
 import { assetsRoutes } from "./routes/assets.js";
+import { settingsRoutes } from "./routes/settings.js";
 import { APP_VERSION } from "./version.js";
 
 /**
@@ -30,6 +32,15 @@ export interface AppDeps {
   txBuilder: TxBuilder | null;
   indexer: OrderIndexer | null;
   assetMetadata: AssetMetadataService;
+  /** Present only when index.ts wired up the runtime Settings page —
+   *  absent in tests that don't exercise it. */
+  settings?: SettingsStore;
+  /** Applies a settings patch, hot-swaps provider/txBuilder/indexer in
+   *  place (mutates this same AppDeps object) and reports whether the new
+   *  provider actually works (a live getTip() check). */
+  applySettings?: (
+    patch: Partial<ChainProviderSettings>
+  ) => Promise<{ ok: boolean; error?: string }>;
 }
 
 export async function buildApp(deps: AppDeps): Promise<FastifyInstance> {
@@ -55,6 +66,7 @@ export async function buildApp(deps: AppDeps): Promise<FastifyInstance> {
   await app.register(protocolRoutes, { deps });
   await app.register(txRoutes, { deps });
   await app.register(assetsRoutes, { deps });
+  await app.register(settingsRoutes, { deps });
 
   // Manual reindex — the frontend's "Refresh" button. Safe (rebuilds a
   // cache from public chain data); cooldown-gated in the indexer itself so

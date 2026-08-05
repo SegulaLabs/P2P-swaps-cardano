@@ -1,5 +1,6 @@
 import type {
   ArbitrageScan,
+  ChainProviderSettings,
   Order,
   Orderbook,
   PairId,
@@ -143,6 +144,19 @@ export const api = {
   }) =>
     request<UnsignedTxResponse>("/tx/take-many-orders", {
       method: "POST",
+      body: JSON.stringify(body),
+    }),
+
+  /** 503 (as ApiError) on a pure env-var deployment with no Settings page
+   *  wired up — callers should treat that as "settings not available". */
+  settings: () => request<ChainProviderSettings>("/settings"),
+  updateSettings: (body: {
+    provider: "blockfrost" | "koios";
+    blockfrostProjectId?: string;
+    koiosApiToken?: string;
+  }) =>
+    request<ChainProviderSettings>("/settings", {
+      method: "PUT",
       body: JSON.stringify(body),
     }),
 };

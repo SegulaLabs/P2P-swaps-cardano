@@ -12,6 +12,10 @@ contracts/build/
 .env.local
 .env.*.local
 
+# runtime settings (may hold a Blockfrost/Koios key set via the app's
+# Settings page instead of .env) — never commit
+backend/data/
+
 # misc
 *.log
 .DS_Store

@@ -6,6 +6,18 @@ they run. Protocol epochs (on-chain script hashes) are listed per release —
 orders created under older epochs stay cancellable by their owners but are
 invisible to newer indexers.
 
+## v0.2.0 — 2026-08-05
+
+- **Chain provider choice**: added [Koios](https://koios.rest) as a second
+  `ChainProvider` alongside Blockfrost — keyless by default (optional
+  bearer token for a higher rate limit), so a fresh clone works with
+  **zero API keys**. Switchable at runtime from a new **Settings** page
+  (`GET`/`PUT /settings`), which hot-swaps the running provider with no
+  restart; `.env` (`CHAIN_PROVIDER`) is now just the first-boot default,
+  persisted afterwards to `backend/data/settings.json` (gitignored, a
+  Docker volume). `ship.sh` and `.env.example` default to Koios.
+- Open-sourced: added `LICENSE` (MIT), `CONTRIBUTING.md`, `SECURITY.md`.
+
 ## v0.1.0 — 2026-07-15
 
 First self-hostable release. **Cardano preprod only — not externally

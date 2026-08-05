@@ -197,8 +197,11 @@ no funds at risk. The frontend should refetch and offer the next-best order.
   names from datums and drops mismatches. API responses carry the UTxO ref so
   the tx-builder re-fetches and re-validates the real UTxO at build time
   (don't build from cache alone).
-- **Secrets**: Blockfrost keys live in env vars, never in the repo, never sent
-  to the browser. Frontend talks only to our backend.
+- **Secrets**: chain-provider keys (Blockfrost project id / Koios token) live
+  in env vars or the runtime settings file (`backend/data/settings.json`,
+  gitignored), never in the repo, never sent to the browser except back to
+  the operator's own Settings page (docs/deployment.md §7). Frontend talks
+  only to our backend.
 - **CORS/rate limiting**: lock CORS to the frontend origin; rate-limit tx
   endpoints (they're compute-heavy). Standard, but scaffolded from day one.
 - **SQL**: parameterized queries only (`pg` with placeholders).

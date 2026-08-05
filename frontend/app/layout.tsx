@@ -32,6 +32,9 @@ export default function RootLayout({
             </nav>
             <div className="header-right">
               <NetworkBadge />
+              <Link href="/settings" className="icon-btn" title="Settings" aria-label="Settings">
+                ⚙
+              </Link>
               <WalletConnect />
             </div>
           </header>

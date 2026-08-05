@@ -54,9 +54,12 @@ To reproduce the live verification: see [../e2e/README.md](../e2e/README.md).
   **aiken v1.1.23 + stdlib v2.2.0** (pinned in `contracts/aiken.toml`).
 - **Node.js ≥ 20** and npm (workspaces are used).
 - **Docker** for PostgreSQL (`infra/docker-compose.yml`).
-- **Blockfrost project for PREPROD** (https://blockfrost.io) — a preprod
-  project id, kept in `backend/.env`, never committed. (Maestro/Koios are
-  alternatives behind the same `ChainProvider` interface.)
+- **A chain provider** — defaults to **Koios** (keyless, `CHAIN_PROVIDER=koios`
+  in `backend/.env.example`); or a **Blockfrost project for PREPROD**
+  (https://blockfrost.io), a preprod project id kept in `backend/.env`,
+  never committed. Both implement the same `ChainProvider` interface
+  (`backend/src/services/chain-provider.ts`) and are switchable at runtime
+  from the app's Settings page — see §7.
 - **A preprod browser wallet** (e.g. Eternl/Lace set to the preprod network)
   funded from the official faucet:
   https://docs.cardano.org/cardano-testnets/tools/faucet
@@ -100,7 +103,7 @@ npm install                                # workspaces + aiken (via npm)
 cp .env.example .env                       # postgres credentials
 docker compose -f infra/docker-compose.yml --env-file .env up -d
 
-cp backend/.env.example backend/.env       # add BLOCKFROST_PROJECT_ID_PREPROD
+cp backend/.env.example backend/.env       # works as-is (Koios); or set CHAIN_PROVIDER=blockfrost + a key
 cp frontend/.env.example frontend/.env.local
 
 npm run dev                                # backend :3001 + frontend :3000
@@ -109,8 +112,9 @@ npm run dev                                # backend :3001 + frontend :3000
 Guards to know about:
 - Backend refuses to boot unless `CARDANO_NETWORK=preprod`, and refuses any
   key-material env var (PRIVATE_KEY/MNEMONIC/…) — it must never sign.
-- Without `BLOCKFROST_PROJECT_ID_PREPROD`, the API still boots read-only:
-  `/tx/*` and the indexer answer 503 instead of pretending.
+- Without a usable provider key (Blockfrost selected but no project id;
+  n/a for keyless Koios), the API still boots read-only: `/tx/*` and the
+  indexer answer 503 instead of pretending.
 - Without a reachable PostgreSQL, the backend falls back to an in-memory
   cache with a loud warning (dev only).
 
@@ -118,7 +122,7 @@ Guards to know about:
 
 **Backend/contract flow: done, automated, and passing** — `e2e/smoke.ts`
 (open-questions #25) runs steps 1–5 below end-to-end against real preprod
-via the actual `TxBuilder`/`OrderIndexer`/`BlockfrostChainProvider` code
+via the actual `TxBuilder`/`OrderIndexer`/`ChainProvider` code
 (not a UI). Run it with `npx tsx e2e/smoke.ts` after
 `npx tsx e2e/generate-wallets.ts` and funding both printed addresses from
 the faucet; see [../e2e/README.md](../e2e/README.md).
@@ -147,7 +151,7 @@ UpdateOrder has no UI and is not part of this test — postponed post-MVP
 
 | Env | Chain | Purpose |
 |---|---|---|
-| local | preprod via Blockfrost | development |
+| local | preprod via Koios or Blockfrost | development |
 | staging (later) | preprod, self-hosted Kupo/Ogmios | provider-migration testing |
 | mainnet | — | **forbidden for MVP** |
 
@@ -162,9 +166,29 @@ blank page. Before a real production rollout, adopt an atomic/versioned
 static-asset deploy (retain prior chunk sets, or a CDN with old-asset
 retention) so in-flight sessions don't break mid-navigation.
 
-## 7. Upgrade path away from Blockfrost
+## 7. Chain provider — Blockfrost, Koios, or your own
 
-`ChainProvider` is the only module that talks to the chain. Later:
-implement `KupoOgmiosProvider` against the same interface, add kupo/ogmios
-services to `infra/docker-compose.yml` (placeholder dirs exist), run both
-providers in staging, diff results, then switch. No business-logic changes.
+`ChainProvider` (`backend/src/services/chain-provider.ts`) is the only
+module that talks to the chain, and it's chosen at runtime, not baked into
+a build:
+
+- **Set at boot** via `.env` (`CHAIN_PROVIDER=koios|blockfrost` +
+  `BLOCKFROST_PROJECT_ID_PREPROD` / `KOIOS_API_TOKEN`).
+- **Changed live** from the app's own **Settings** page (`GET`/`PUT
+  /settings`, `backend/src/routes/settings.ts`) — hot-swaps the running
+  provider/tx-builder/indexer with no restart, and persists the choice to
+  `backend/data/settings.json` (gitignored; a Docker volume in
+  `docker-compose.yml`).
+
+`KoiosChainProvider`'s live-tx-building and read paths (address UTxOs,
+tip, submit) are verified against real preprod data; its background
+order-status classification (`getSpendRedeemers`, used by the indexer to
+tell "cancelled" from "taken" after the fact) is best-effort and degrades
+to "unknown" on an unrecognized shape rather than misclassifying — see the
+comments in that file. Reports/PRs tightening that up are welcome
+(CONTRIBUTING.md).
+
+Further out: implement `KupoOgmiosProvider` against the same interface, add
+kupo/ogmios services to `infra/docker-compose.yml` (placeholder dirs
+exist), run it alongside Koios/Blockfrost in staging, diff results, then
+switch. No business-logic changes required either way.

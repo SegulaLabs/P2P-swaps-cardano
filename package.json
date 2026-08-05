@@ -1,7 +1,8 @@
 {
   "name": "cardano-p2p-beacon-dex",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "private": true,
+  "license": "MIT",
   "description": "Cardano P2P beacon-token trading platform (preprod MVP) — monorepo root",
   "workspaces": [
     "backend",

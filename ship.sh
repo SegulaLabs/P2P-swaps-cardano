@@ -1,9 +1,10 @@
 #!/usr/bin/env bash
 # ship.sh — run your own Beacon DEX with one command (no Docker required).
 #
-#   ./ship.sh              first run: asks for your Blockfrost preprod id,
-#                          then installs, builds and starts everything
-#   ./ship.sh --configure  re-run the setup questions (e.g. new key)
+#   ./ship.sh              first run: asks which chain provider to use
+#                          (Koios needs no key), then installs, builds and
+#                          starts everything
+#   ./ship.sh --configure  re-run the setup questions (e.g. switch provider)
 #   ./ship.sh --rebuild    force a clean rebuild of backend + frontend
 #   ./ship.sh --postgres   also start PostgreSQL via Docker (optional;
 #                          without it an in-memory order cache is used,
@@ -45,24 +46,31 @@ say "Beacon DEX v$VERSION — self-hosted, Cardano PREPROD only."
 # ---------------------------------------------------------------- configure
 if [ ! -f backend/.env ] || [ "$CONFIGURE" = 1 ]; then
   echo
-  say "One-time setup. You need a FREE Blockfrost project id for PREPROD:"
-  say "  1. Sign up at https://blockfrost.io"
-  say "  2. Create a project on the *Cardano preprod* network"
-  say "  3. Paste its project id below (it starts with \"preprod\")"
+  say "One-time setup — chain provider:"
+  say "  [1] Koios, no key needed (default — press Enter)"
+  say "  2   Blockfrost — needs a free PREPROD project id from https://blockfrost.io"
   echo
-  BF_KEY="${BLOCKFROST_PROJECT_ID_PREPROD:-}"
-  if [ -z "$BF_KEY" ]; then
-    printf 'Blockfrost preprod project id (Enter to skip -> read-only mode): '
-    read -r BF_KEY
+  printf 'Choice [1]: '
+  read -r PROVIDER_CHOICE
+  cp backend/.env.example backend/.env
+  if [ "$PROVIDER_CHOICE" = "2" ]; then
+    BF_KEY="${BLOCKFROST_PROJECT_ID_PREPROD:-}"
+    if [ -z "$BF_KEY" ]; then
+      printf 'Blockfrost preprod project id (starts with "preprod"): '
+      read -r BF_KEY
+    fi
+    if [ -n "$BF_KEY" ] && [ "${BF_KEY#preprod}" = "$BF_KEY" ]; then
+      fail "That doesn't look like a PREPROD project id (they start with \"preprod\"). Mainnet keys are refused by design."
+    fi
+    sed -i.bak \
+      -e "s|^CHAIN_PROVIDER=.*|CHAIN_PROVIDER=blockfrost|" \
+      -e "s|^BLOCKFROST_PROJECT_ID_PREPROD=.*|BLOCKFROST_PROJECT_ID_PREPROD=$BF_KEY|" \
+      backend/.env && rm -f backend/.env.bak
+  else
+    say "Using Koios (keyless). Switch providers anytime from the app's own Settings page — no restart needed."
   fi
-  if [ -n "$BF_KEY" ] && [ "${BF_KEY#preprod}" = "$BF_KEY" ]; then
-    fail "That doesn't look like a PREPROD project id (they start with \"preprod\"). Mainnet keys are refused by design."
-  fi
-  sed "s|^BLOCKFROST_PROJECT_ID_PREPROD=.*|BLOCKFROST_PROJECT_ID_PREPROD=$BF_KEY|" \
-    backend/.env.example > backend/.env
   cp frontend/.env.example frontend/.env.local
   say "Wrote backend/.env and frontend/.env.local (never committed)."
-  [ -z "$BF_KEY" ] && say "No key set: the app boots read-only; run ./ship.sh --configure once you have one."
 fi
 
 # ---------------------------------------------------------------- postgres (optional)

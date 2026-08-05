@@ -1,6 +1,6 @@
 {
   "name": "@p2p-dex/backend",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "private": true,
   "type": "module",
   "description": "Non-custodial API: order cache/indexer + unsigned-tx builder (Cardano preprod). Never holds keys or funds.",

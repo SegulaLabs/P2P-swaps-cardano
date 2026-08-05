@@ -27,6 +27,24 @@ describe("preprod boot guard", () => {
   });
 });
 
+describe("CHAIN_PROVIDER", () => {
+  it("defaults to blockfrost", () => {
+    expect(parseEnv(VALID).CHAIN_PROVIDER).toBe("blockfrost");
+  });
+
+  it("accepts koios", () => {
+    expect(parseEnv({ ...VALID, CHAIN_PROVIDER: "koios" }).CHAIN_PROVIDER).toBe(
+      "koios"
+    );
+  });
+
+  it("refuses an unknown provider", () => {
+    expect(() =>
+      parseEnv({ ...VALID, CHAIN_PROVIDER: "ogmios" })
+    ).toThrow();
+  });
+});
+
 describe("no-key-material guard", () => {
   it.each([
     "PRIVATE_KEY",

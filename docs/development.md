@@ -14,8 +14,10 @@ page is for working on the code.
   aiken v1.1.23 / stdlib v2.2.0. The compiled blueprint
   (`backend/src/protocol/plutus.json`) is **committed**, so everyone else
   never needs Aiken.
-- A **Blockfrost preprod** project id in `backend/.env` for anything that
-  touches the chain (tx building, indexing, e2e).
+- A chain provider for anything that touches the chain (tx building,
+  indexing, e2e): defaults to **Koios** (keyless) in `backend/.env.example`;
+  set `CHAIN_PROVIDER=blockfrost` + a **Blockfrost preprod** project id to
+  use that instead.
 
 ## Setup
 
@@ -24,7 +26,7 @@ npm install
 cp .env.example .env                     # root: postgres credentials
 docker compose -f infra/docker-compose.yml --env-file .env up -d   # postgres (optional)
 
-cp backend/.env.example backend/.env     # ← add BLOCKFROST_PROJECT_ID_PREPROD
+cp backend/.env.example backend/.env     # works as-is (Koios, keyless); or set CHAIN_PROVIDER=blockfrost + a key
 cp frontend/.env.example frontend/.env.local
 
 npm run dev                              # tsx watch :3001 + next dev :3000

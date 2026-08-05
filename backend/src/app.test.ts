@@ -234,4 +234,98 @@ describe("API (no provider)", () => {
     const res = await app.inject({ method: "GET", url: "/assets/garbage" });
     expect(res.statusCode).toBe(400);
   });
+
+  it("GET /settings 503s when no SettingsStore is wired (pure env deployment)", async () => {
+    const res = await app.inject({ method: "GET", url: "/settings" });
+    expect(res.statusCode).toBe(503);
+  });
+
+  it("PUT /settings 503s when no SettingsStore is wired", async () => {
+    const res = await app.inject({
+      method: "PUT",
+      url: "/settings",
+      payload: { provider: "koios" },
+    });
+    expect(res.statusCode).toBe(503);
+  });
+});
+
+describe("API (with a Settings store)", () => {
+  let app: FastifyInstance;
+  let applySettingsCalls: unknown[] = [];
+
+  beforeAll(async () => {
+    const { SettingsStore } = await import("./services/settings-store.js");
+    const { mkdtemp } = await import("fs/promises");
+    const { tmpdir } = await import("os");
+    const path = await import("path");
+    const dir = await mkdtemp(path.join(tmpdir(), "app-test-settings-"));
+    const store = await SettingsStore.load(path.join(dir, "settings.json"), {
+      provider: "blockfrost",
+      blockfrostProjectId: "",
+      koiosApiToken: "",
+    });
+    app = await buildApp({
+      config: parseEnv({
+        CARDANO_NETWORK: "preprod",
+        DATABASE_URL: "postgres://unused",
+      }),
+      scripts: loadProtocolScripts(),
+      repo: new MemoryOrdersRepo(),
+      provider: null,
+      txBuilder: null,
+      indexer: null,
+      assetMetadata: new AssetMetadataService(null, null),
+      settings: store,
+      async applySettings(patch) {
+        applySettingsCalls.push(patch);
+        if (patch.provider === "blockfrost" && !patch.blockfrostProjectId)
+          return { ok: false, error: "no key" };
+        await store.update(patch);
+        return { ok: true };
+      },
+    });
+  });
+
+  afterAll(async () => {
+    await app.close();
+  });
+
+  it("GET /settings reports the current provider", async () => {
+    const res = await app.inject({ method: "GET", url: "/settings" });
+    expect(res.statusCode).toBe(200);
+    expect(res.json()).toMatchObject({ provider: "blockfrost", active: null });
+  });
+
+  it("PUT /settings rejects an invalid body", async () => {
+    const res = await app.inject({
+      method: "PUT",
+      url: "/settings",
+      payload: { provider: "not-a-provider" },
+    });
+    expect(res.statusCode).toBe(400);
+  });
+
+  it("PUT /settings surfaces a provider check failure as 422", async () => {
+    const res = await app.inject({
+      method: "PUT",
+      url: "/settings",
+      payload: { provider: "blockfrost" },
+    });
+    expect(res.statusCode).toBe(422);
+  });
+
+  it("PUT /settings applies a valid switch to koios", async () => {
+    const res = await app.inject({
+      method: "PUT",
+      url: "/settings",
+      payload: { provider: "koios", koiosApiToken: "tok" },
+    });
+    expect(res.statusCode).toBe(200);
+    expect(res.json()).toMatchObject({ provider: "koios" });
+    expect(applySettingsCalls).toContainEqual({
+      provider: "koios",
+      koiosApiToken: "tok",
+    });
+  });
 });

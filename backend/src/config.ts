@@ -14,9 +14,19 @@ const EnvSchema = z.object({
   DATABASE_URL: z
     .string()
     .default("postgres://p2pdex:change-me-locally@localhost:5432/p2pdex"),
-  /** Blockfrost preprod project id. Optional: without it the API boots but
-   *  provider-backed endpoints return 503 (dev without a key). */
+  /** Which chain provider to use. "blockfrost" needs
+   *  BLOCKFROST_PROJECT_ID_PREPROD; "koios" works keyless (public rate
+   *  limit) or with KOIOS_API_TOKEN for a higher one. Overridable at
+   *  runtime from the app's Settings page (services/settings-store.ts) —
+   *  these env vars are just the boot-time default. */
+  CHAIN_PROVIDER: z.enum(["blockfrost", "koios"]).default("blockfrost"),
+  /** Blockfrost preprod project id. Optional: without it (and without
+   *  switching to koios) the API boots but provider-backed endpoints
+   *  return 503 (dev without a key). */
   BLOCKFROST_PROJECT_ID_PREPROD: z.string().default(""),
+  /** Optional Koios bearer token (https://koios.rest) — raises the public
+   *  rate limit. Koios works without one. */
+  KOIOS_API_TOKEN: z.string().default(""),
   PROTOCOL_VERSION: z.coerce.number().int().positive().default(1),
   /** Optional cross-checks against the compiled blueprint — boot fails on
    *  mismatch so a stale build can't silently serve wrong scripts. */

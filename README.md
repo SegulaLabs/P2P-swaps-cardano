@@ -68,9 +68,9 @@ Prior epochs (orders under them are orphaned, still cancellable): v2
 
 ```
 contracts/   Aiken: order validator + beacon policy (rules in lib/, tested)
-backend/     Fastify TS: Blockfrost provider, beacon indexer, Mesh unsigned-tx
-             builder, smart-fill + arbitrage planners, PostgreSQL cache
-             (in-memory fallback for dev)
+backend/     Fastify TS: Blockfrost/Koios provider (switchable in-app), beacon
+             indexer, Mesh unsigned-tx builder, smart-fill + arbitrage
+             planners, PostgreSQL cache (in-memory fallback for dev)
 frontend/    Next.js + Mesh React: wallet connect, order book, trade/create/
              cancel/arbitrage flows with mandatory TransactionPreview
 e2e/         live preprod harness: smoke tests (v1/v2/v3) + market seeding
@@ -87,22 +87,26 @@ docker-compose.yml  one-command Docker deployment (production images)
 ## Run your own copy (quickstart)
 
 This app is **self-hosted by design** — nobody operates it as a service.
-Clone it, run one command, trade with your own browser wallet. The only
-thing you need is a free **Blockfrost preprod** project id
-(https://blockfrost.io — your personal connection to the chain).
+Clone it, run one command, trade with your own browser wallet. There's
+**nothing to sign up for**: it defaults to [Koios](https://koios.rest), a
+free keyless Cardano chain API, so it works out of the box. (You can switch
+to [Blockfrost](https://blockfrost.io) instead, either up front or later
+from the app's own **Settings** page — no restart needed.)
 
 **One command, no Docker** (needs Node.js ≥ 20):
 
 ```bash
-git clone <this-repo> && cd cardano-p2p-beacon-dex
-./ship.sh        # first run asks for your Blockfrost id, then builds + starts
+git clone https://github.com/SegulaLabs/P2P-swaps-cardano.git
+cd P2P-swaps-cardano
+./ship.sh        # first run asks which provider to use, then builds + starts
 ```
 
-**Or all-Docker:**
+**Or all-Docker** (works with zero `.env` changes — Koios needs no key):
 
 ```bash
-git clone <this-repo> && cd cardano-p2p-beacon-dex
-cp .env.example .env          # put your Blockfrost id in it
+git clone https://github.com/SegulaLabs/P2P-swaps-cardano.git
+cd P2P-swaps-cardano
+cp .env.example .env
 docker compose up --build -d  # production images + PostgreSQL cache
 ```
 
@@ -177,3 +181,14 @@ npm run build             # backend tsc + frontend next build
 [partial-fills](docs/partial-fills.md) · [arbitrage](docs/arbitrage.md) ·
 [open-questions](docs/open-questions.md) ·
 [security audit](Audit/security-audit-fable5.md)
+
+## Contributing
+
+Issues and PRs are welcome — see [CONTRIBUTING.md](CONTRIBUTING.md) for dev
+setup (same as [docs/development.md](docs/development.md)) and what to
+include in a PR. Found a security issue? Please read
+[SECURITY.md](SECURITY.md) instead of opening a public issue.
+
+## License
+
+[MIT](LICENSE).

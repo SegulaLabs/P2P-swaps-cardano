@@ -13,33 +13,41 @@ in on-chain order UTxOs governed by validators — never with a middleman.
 | Thing | Where | Cost |
 |---|---|---|
 | Node.js ≥ 20 **or** Docker | https://nodejs.org / https://docs.docker.com/get-docker/ | free |
-| Blockfrost **preprod** project id | https://blockfrost.io → create project → network **Cardano preprod** | free tier |
 | A CIP-30 browser wallet (Eternl, Lace, …) set to **preprod** | wallet's website / extension store | free |
 | Test ADA (tADA) | official faucet: https://docs.cardano.org/cardano-testnets/tools/faucet | free |
 
-The Blockfrost id is how *your* copy of the app reads the chain and submits
-transactions — it's your personal connection to Cardano, which is what keeps
-this decentralized. The id starts with `preprod`; a mainnet id is rejected.
+That's it — nothing to sign up for. The app defaults to
+[Koios](https://koios.rest), a free keyless Cardano chain API, so it works
+out of the box. This is how *your* copy of the app reads the chain and
+submits transactions — your personal connection to Cardano, which is what
+keeps this decentralized. If you'd rather use
+[Blockfrost](https://blockfrost.io) instead (its own free **preprod**
+project id, starts with `preprod`; a mainnet id is rejected), you can set
+that up front or switch anytime from the app's own **Settings** page —
+no restart needed either way.
 
 ## 2. Start it
 
 **Option A — one command, no Docker (recommended first try):**
 
 ```bash
-git clone <this-repo> && cd cardano-p2p-beacon-dex
+git clone https://github.com/SegulaLabs/P2P-swaps-cardano.git
+cd P2P-swaps-cardano
 ./ship.sh
 ```
 
-The first run asks for your Blockfrost id, installs, builds and starts
-everything. Then open **http://localhost:3000**. Next time, `./ship.sh` goes
-straight to starting. `./ship.sh --help` lists the few options
-(`--configure` to change the key, `--rebuild`, `--postgres`).
+The first run asks which chain provider to use (Koios needs no key — just
+press Enter), installs, builds and starts everything. Then open
+**http://localhost:3000**. Next time, `./ship.sh` goes straight to
+starting. `./ship.sh --help` lists the few options (`--configure` to
+change provider, `--rebuild`, `--postgres`).
 
 **Option B — Docker only:**
 
 ```bash
-git clone <this-repo> && cd cardano-p2p-beacon-dex
-cp .env.example .env        # put your Blockfrost id in it
+git clone https://github.com/SegulaLabs/P2P-swaps-cardano.git
+cd P2P-swaps-cardano
+cp .env.example .env        # works as-is — Koios needs no key
 docker compose up --build -d
 ```
 
@@ -95,7 +103,8 @@ signature.
   a malicious one, can steal *locked* order funds.
 - Two people can race for the same order; the loser's transaction simply
   fails and nothing is lost.
-- Keep your Blockfrost id private (it's a quota, not a key — but it's yours).
+- If you use Blockfrost, keep your project id private (it's a quota, not a
+  spending key — but it's yours).
 
 ## 6. Everyday operations
 
@@ -104,25 +113,24 @@ signature.
 | Start / stop | `./ship.sh` / Ctrl-C — or `docker compose up -d` / `down` |
 | See what version you run | footer of the site, or `curl localhost:3001/health` |
 | Update to a new release | `git pull` (or `git checkout vX.Y.Z`), then `./ship.sh --rebuild` or `docker compose up --build -d` |
-| Change the Blockfrost id | `./ship.sh --configure`, or edit `.env` / `backend/.env` |
+| Switch provider / change key | The app's **Settings** page (no restart), or `./ship.sh --configure` / edit `.env` / `backend/.env` |
 | Force order-book refresh | **Refresh** button in the UI |
 | Wipe the local cache | Docker: `docker compose down -v`; ship.sh without `--postgres` keeps no cache at all |
 
 ## 7. Troubleshooting
 
-- **Trading buttons return errors / 503** — no or wrong Blockfrost id. It
-  must start with `preprod`. Fix via `./ship.sh --configure` (or `.env` for
-  Docker) and restart.
+- **Trading buttons return errors / 503** — no provider configured, or a
+  Blockfrost id that doesn't start with `preprod`. Check the **Settings**
+  page, or fix via `./ship.sh --configure` (or `.env` for Docker) and
+  restart.
 - **"Backend unreachable" banner** — the backend isn't running or crashed:
   `docker compose ps` should show it healthy; `docker compose logs backend
-  --tail=30` shows why not (most often a bad Blockfrost id).
+  --tail=30` shows why not.
 - **Wallet won't connect or shows no funds** — the wallet is probably on
   mainnet or preview; switch it to **preprod**. Fund via the faucet.
 - **Port 3000/3001 already in use** — stop the other program, or (Docker)
   set `FRONTEND_PORT` / `BACKEND_PORT` in `.env`.
 - **Order book looks stale or empty** — click **Refresh**; if you run
   without PostgreSQL the cache re-syncs on every restart, give it a moment.
-- **`docker compose up` fails asking for BLOCKFROST_PROJECT_ID_PREPROD** —
-  you skipped `cp .env.example .env` or left the id empty.
 - **A take fails right after clicking** — someone else took that order
   first (the chain is first-come-first-served). Refresh and retry.

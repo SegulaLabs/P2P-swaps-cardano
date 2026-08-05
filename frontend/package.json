@@ -1,6 +1,6 @@
 {
   "name": "@p2p-dex/frontend",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "private": true,
   "description": "Next.js UI for the P2P beacon DEX (Cardano preprod only). Signing happens in the user's CIP-30 wallet.",
   "scripts": {

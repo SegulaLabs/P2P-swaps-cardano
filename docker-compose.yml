@@ -40,14 +40,21 @@ services:
       PORT: 3001
       CORS_ORIGIN: ${CORS_ORIGIN:-http://localhost:3000}
       DATABASE_URL: postgres://${POSTGRES_USER:-p2pdex}:${POSTGRES_PASSWORD:-p2pdex-local}@postgres:5432/${POSTGRES_DB:-p2pdex}
-      # Required for trading — create a PREPROD project at https://blockfrost.io
-      BLOCKFROST_PROJECT_ID_PREPROD: ${BLOCKFROST_PROJECT_ID_PREPROD:?Set BLOCKFROST_PROJECT_ID_PREPROD in .env — free preprod project id from https://blockfrost.io}
+      # Chain provider — "blockfrost" (needs a free preprod project id from
+      # https://blockfrost.io) or "koios" (keyless by default). Either can
+      # also be set/changed later from the app's Settings page with no
+      # restart needed — these env vars are just the first-boot default.
+      CHAIN_PROVIDER: ${CHAIN_PROVIDER:-blockfrost}
+      BLOCKFROST_PROJECT_ID_PREPROD: ${BLOCKFROST_PROJECT_ID_PREPROD:-}
+      KOIOS_API_TOKEN: ${KOIOS_API_TOKEN:-}
       PROTOCOL_VERSION: ${PROTOCOL_VERSION:-3}
       # Optional cross-checks / tuning — see backend/.env.example for docs.
       ORDER_VALIDATOR_HASH: ${ORDER_VALIDATOR_HASH:-}
       BEACON_POLICY_ID: ${BEACON_POLICY_ID:-}
       REFERENCE_SCRIPT_TX_ID: ${REFERENCE_SCRIPT_TX_ID:-}
       REFERENCE_SCRIPT_INDEX: ${REFERENCE_SCRIPT_INDEX:-0}
+    volumes:
+      - backend-data:/app/backend/data
     ports:
       - "${BACKEND_PORT:-3001}:3001"
     depends_on:
@@ -81,3 +88,4 @@ services:
 
 volumes:
   pgdata:
+  backend-data:
