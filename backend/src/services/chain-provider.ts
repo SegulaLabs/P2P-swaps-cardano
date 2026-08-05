@@ -332,6 +332,26 @@ export class KoiosChainProvider implements ChainProvider {
     this.mesh = token
       ? new KoiosProvider("preprod", token)
       : new KoiosProvider("preprod");
+    // Mesh's KoiosProvider.fetchCostModels() is an unimplemented stub (throws
+    // "Method not implemented"), unlike its Blockfrost counterpart — but
+    // MeshTxBuilder.complete() calls it to compute the tx's script_data_hash,
+    // and silently falls back to a DEFAULT cost model set on failure. That
+    // default doesn't match the network's real, current cost models, so
+    // every Koios-built tx submits with a script_data_hash the node
+    // recomputes differently and rejects with ScriptIntegrityHashMismatch —
+    // confirmed live (a real preprod swap failed with exactly that error
+    // before this fix). Koios's own /epoch_params DOES carry real cost
+    // models (unlike fetchProtocolParameters(), which also drops them) —
+    // wire it through directly, same [V1, V2, V3] shape as Blockfrost's
+    // fetchCostModels().
+    this.mesh.fetchCostModels = async () => {
+      const rows = await this.rest<
+        { cost_models: { PlutusV1: number[]; PlutusV2: number[]; PlutusV3: number[] } }[]
+      >("/epoch_params?order=epoch_no.desc&limit=1");
+      const models = rows?.[0]?.cost_models;
+      if (!models) throw new Error("koios: no cost models in /epoch_params");
+      return [models.PlutusV1, models.PlutusV2, models.PlutusV3];
+    };
   }
 
   private async rest<T>(path: string, body?: unknown): Promise<T> {

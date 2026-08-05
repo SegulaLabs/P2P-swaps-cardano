@@ -180,12 +180,18 @@ a build:
   `backend/data/settings.json` (gitignored; a Docker volume in
   `docker-compose.yml`).
 
-`KoiosChainProvider`'s live-tx-building and read paths (address UTxOs,
-tip, submit) are verified against real preprod data; its background
+`KoiosChainProvider`'s live-tx-building and read paths (address UTxOs, tip,
+submit) are verified against real preprod data — including a live-caught
+and fixed bug: Mesh's `KoiosProvider.fetchCostModels()` is an unimplemented
+stub, which made `MeshTxBuilder.complete()` silently fall back to a default
+cost model set and submit transactions with a `script_data_hash` the node
+recomputes differently, failing with `ScriptIntegrityHashMismatch`.
+`KoiosChainProvider`'s constructor overrides it with a real implementation
+sourced from Koios's own `/epoch_params` (chain-provider.ts). Its background
 order-status classification (`getSpendRedeemers`, used by the indexer to
-tell "cancelled" from "taken" after the fact) is best-effort and degrades
-to "unknown" on an unrecognized shape rather than misclassifying — see the
-comments in that file. Reports/PRs tightening that up are welcome
+tell "cancelled" from "taken" after the fact) is still best-effort and
+degrades to "unknown" on an unrecognized shape rather than misclassifying —
+see the comments in that file. Reports/PRs tightening that up are welcome
 (CONTRIBUTING.md).
 
 Further out: implement `KupoOgmiosProvider` against the same interface, add

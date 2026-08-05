@@ -129,6 +129,7 @@ button:disabled { opacity: 0.45; cursor: not-allowed; }
 .btn-big { width: 100%; padding: 0.95rem; font-size: 1.05rem; border-radius: 16px; }
 .icon-btn { color: var(--muted); padding: .3rem .5rem; border-radius: 8px; }
 .icon-btn:hover { color: var(--text); background: var(--panel-2); }
+.settings-btn { font-size: 1.35rem; padding: .4rem .6rem; }
 .linklike { color: var(--muted); font-size: .85rem; }
 .linklike:hover { color: var(--accent); }
 
@@ -516,7 +517,7 @@ tr.partial-row > td { padding: 0; background: var(--panel-2); }
 /* ----------------------------------------------------- forms */
 form label, .advanced label { display: block; margin: 0.6rem 0 0.25rem; font-size: 0.85rem; color: var(--muted); }
 input, select {
-  padding: 0.55rem 0.7rem;
+  padding: 0.65rem 0.95rem;
   border: 1px solid var(--border);
   border-radius: 12px;
   width: 100%;

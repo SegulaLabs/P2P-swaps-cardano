@@ -44,7 +44,7 @@ services:
       # https://blockfrost.io) or "koios" (keyless by default). Either can
       # also be set/changed later from the app's Settings page with no
       # restart needed — these env vars are just the first-boot default.
-      CHAIN_PROVIDER: ${CHAIN_PROVIDER:-blockfrost}
+      CHAIN_PROVIDER: ${CHAIN_PROVIDER:-koios}
       BLOCKFROST_PROJECT_ID_PREPROD: ${BLOCKFROST_PROJECT_ID_PREPROD:-}
       KOIOS_API_TOKEN: ${KOIOS_API_TOKEN:-}
       PROTOCOL_VERSION: ${PROTOCOL_VERSION:-3}

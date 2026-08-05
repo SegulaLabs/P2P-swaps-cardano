@@ -30,6 +30,11 @@ ENV NODE_ENV=production
 # Whole deps tree (root node_modules + workspace layout), then the build.
 COPY --from=deps --chown=node:node /app /app
 COPY --from=build --chown=node:node /app/backend/dist /app/backend/dist
+# Pre-create + chown the runtime-settings dir (docker-compose.yml mounts a
+# volume here for backend/data/settings.json) so it's node-owned BEFORE the
+# volume is created — otherwise Docker creates a fresh named volume's mount
+# point as root, and the non-root `node` user below can't write to it.
+RUN mkdir -p /app/backend/data && chown node:node /app/backend/data
 USER node
 WORKDIR /app/backend
 EXPOSE 3001

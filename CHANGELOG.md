@@ -6,6 +6,22 @@ they run. Protocol epochs (on-chain script hashes) are listed per release —
 orders created under older epochs stay cancellable by their owners but are
 invisible to newer indexers.
 
+## v0.2.1 — 2026-08-05
+
+Fixes found running v0.2.0 live:
+
+- **Koios swaps were failing at submission** with
+  `ScriptIntegrityHashMismatch`: Mesh's `KoiosProvider.fetchCostModels()` is
+  an unimplemented stub, so `MeshTxBuilder` silently used a default cost
+  model set instead of the network's real one when computing
+  `script_data_hash`. Fixed by wiring a real implementation sourced from
+  Koios's own `/epoch_params` (docs/deployment.md §7).
+- **Settings page failed to save** (`EACCES` on `./data/settings.json`)
+  under Docker: the named volume backing `backend/data` was created
+  root-owned before the non-root `node` user could write to it.
+  `backend/Dockerfile` now pre-creates and chowns that directory.
+- UI: bigger Settings (⚙) button, more padding in text inputs app-wide.
+
 ## v0.2.0 — 2026-08-05
 
 - **Chain provider choice**: added [Koios](https://koios.rest) as a second
