@@ -1,8 +1,30 @@
-# Cardano P2P Beacon DEX (preprod MVP)
+<div align="center">
+
+# 🔆 Beacon DEX
+
+### Peer-to-peer trading on Cardano — non-custodial, self-hosted, no middleman.
+
+[![License: MIT](https://img.shields.io/badge/license-MIT-c8f169?style=flat-square)](LICENSE)
+[![CI](https://img.shields.io/github/actions/workflow/status/SegulaLabs/P2P-swaps-cardano/ci.yml?branch=main&style=flat-square&label=CI&color=c8f169)](.github/workflows/ci.yml)
+[![Node.js ≥ 20](https://img.shields.io/badge/node-%E2%89%A520-339933?style=flat-square&logo=node.js&logoColor=white)](package.json)
+[![Docker](https://img.shields.io/badge/docker-ready-2496ED?style=flat-square&logo=docker&logoColor=white)](docker-compose.yml)
+[![Cardano preprod](https://img.shields.io/badge/Cardano-preprod-0033AD?style=flat-square&logo=cardano&logoColor=white)](docs/user-guide.md)
+
+<img src=".github/assets/trade-preview.png" alt="Beacon DEX swap card — spend tADA, receive TESTB, atomic on-chain fill" width="520">
+
+**[Quick Start](#-quick-start)** · **[How It Works](#%EF%B8%8F-how-it-works)** · **[Docs](#-docs)** · **[Security](#%EF%B8%8F-security-warnings)** · **[Contributing](#-contributing)**
+
+</div>
+
+---
 
 A peer-to-peer, order-book style trading DApp on Cardano, built on the
 **distributed-DApp / beacon-token** pattern (CIP-0089, fallen-icarus style).
+Every order is its own on-chain UTxO — no pools, no liquidity providers, no
+platform ever holding your funds. Run it on your own machine or server with
+one command; your browser wallet signs everything.
 
+> [!NOTE]
 > **Status: protocol v3 (opt-in partial fills) implemented, preprod only,
 > NOT externally audited.** All local validation passes (130 Aiken tests, 120
 > backend tests, 66 frontend tests, full typecheck + builds). Live preprod
@@ -13,7 +35,41 @@ A peer-to-peer, order-book style trading DApp on Cardano, built on the
 > trust boundary strong and **no way to steal locked value**; its one High
 > finding (F-01) is off-chain and gates any use beyond preprod.
 
-## What this is / is not
+## ✨ Why Beacon DEX
+
+- 🔐 **Non-custodial** — funds sit in on-chain order UTxOs governed by
+  validators; this software never sees, holds, or signs with your keys.
+- 🆓 **Zero-key quick start** — defaults to [Koios](https://koios.rest), a
+  free keyless Cardano API. No sign-up needed to get trading.
+- 🔁 **Bring your own provider** — switch to [Blockfrost](https://blockfrost.io)
+  anytime from the in-app **Settings** page, no restart required.
+- ⚛️ **Atomic batch fills** — take up to 8 orders in one transaction; smart
+  fill routes a single spend/receive amount across the cheapest orders.
+- 🧩 **Opt-in partial fills** — sellers choose whether their order can be
+  partially taken, with the remainder recreated on the book automatically.
+- 📈 **Built-in arbitrage scanner** — detects profitable cycles across the
+  open book, executable in a single transaction.
+- 🐳 **One command to run** — `./ship.sh` or `docker compose up`, on your
+  laptop or a home server.
+
+<details>
+<summary>📋 Table of contents</summary>
+
+- [Why Beacon DEX](#-why-beacon-dex)
+- [What this is / is not](#-what-this-is--is-not)
+- [How it works](#%EF%B8%8F-how-it-works)
+- [Repository layout](#%EF%B8%8F-repository-layout)
+- [Quick Start](#-quick-start)
+- [Develop / validate](#%EF%B8%8F-develop--validate)
+- [How signing works](#-how-signing-works-and-why-this-is-non-custodial)
+- [Security warnings](#%EF%B8%8F-security-warnings)
+- [Docs](#-docs)
+- [Contributing](#-contributing)
+- [License](#-license)
+
+</details>
+
+## 🧭 What this is / is not
 
 | It is | It is not |
 |---|---|
@@ -25,7 +81,7 @@ A peer-to-peer, order-book style trading DApp on Cardano, built on the
 | **Opt-in** partial fills (seller sets `allowPartialFill`) | Forced partial fills — full-fill-only orders stay full-fill-only |
 | **Cardano preprod only** | Mainnet (blocked by boot guards, badges, policy, and the F-01 audit finding) |
 
-## How it works
+## ⚙️ How it works
 
 A user creates an order by locking the offered asset + a ~3.5 tADA deposit +
 five **beacon tokens** in a UTxO at the order validator address (validator
@@ -64,7 +120,7 @@ Script identities (current build — protocol v3, aiken↔Mesh cross-checked):
 Prior epochs (orders under them are orphaned, still cancellable): v2
 `4d0a1335…94b8` / `a88c60a8…c9b0`, v1 `89389051…46ab` / `264ed623…cc0a`.
 
-## Repository layout
+## 🗂️ Repository layout
 
 ```
 contracts/   Aiken: order validator + beacon policy (rules in lib/, tested)
@@ -84,7 +140,7 @@ ship.sh             one-command launcher (configure → build → start)
 docker-compose.yml  one-command Docker deployment (production images)
 ```
 
-## Run your own copy (quickstart)
+## 🚀 Quick Start
 
 This app is **self-hosted by design** — nobody operates it as a service.
 Clone it, run one command, trade with your own browser wallet. There's
@@ -120,7 +176,7 @@ in the site footer and on `GET /health` ([CHANGELOG.md](CHANGELOG.md)).
 Prebuilt images are published to GHCR on release tags
 (`.github/workflows/release-images.yml`).
 
-## Develop / validate
+## 🛠️ Develop / validate
 
 Contributor setup (dev servers, Aiken toolchain, contracts rebuild,
 releasing): **[docs/development.md](docs/development.md)**.
@@ -132,7 +188,7 @@ npm run typecheck
 npm run build             # backend tsc + frontend next build
 ```
 
-## How signing works (and why this is non-custodial)
+## 🔏 How signing works (and why this is non-custodial)
 
 1. The frontend sends your wallet's UTxOs + change address + a collateral
    UTxO to the backend, which builds and balances an **unsigned** transaction
@@ -148,7 +204,7 @@ npm run build             # backend tsc + frontend next build
    not by the backend: a malicious backend cannot steal *from the seller* of an
    order — but see F-01 below for what it can still do to **you, the signer**.
 
-## Security warnings
+## ⚠️ Security warnings
 
 - **Experimental MVP. Not externally audited. Preprod only — never use
   mainnet funds.**
@@ -169,7 +225,7 @@ npm run build             # backend tsc + frontend next build
   §5 (tests ✅, live preprod ✅, F-01 closed ❌, external audit ❌, adversarial
   soak ❌) is fully passed.
 
-## Docs
+## 📚 Docs
 
 [user-guide](docs/user-guide.md) ·
 [development](docs/development.md) ·
@@ -182,13 +238,13 @@ npm run build             # backend tsc + frontend next build
 [open-questions](docs/open-questions.md) ·
 [security audit](Audit/security-audit-fable5.md)
 
-## Contributing
+## 🤝 Contributing
 
 Issues and PRs are welcome — see [CONTRIBUTING.md](CONTRIBUTING.md) for dev
 setup (same as [docs/development.md](docs/development.md)) and what to
 include in a PR. Found a security issue? Please read
 [SECURITY.md](SECURITY.md) instead of opening a public issue.
 
-## License
+## 📄 License
 
 [MIT](LICENSE).
