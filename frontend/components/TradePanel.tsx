@@ -260,6 +260,18 @@ function MarketTab({
     return () => clearTimeout(t);
   }, [rawLimit, edited, quote, spendAsset, receiveAsset]);
 
+  // A batch can fail because one of its orders was already taken/cancelled
+  // by someone else since the quote was planned (order_not_found — the
+  // order cache is a snapshot, the chain is the truth). The banner below
+  // tells the user "the quote re-plans automatically" — make that literally
+  // true: hard-refresh (reindex, not just a passive re-fetch of the same
+  // stale cache) and re-quote, so a retry doesn't just hit the same stale
+  // order again.
+  useEffect(() => {
+    if (flow.state.step !== "error" || rawLimit === null) return;
+    void api.reindex().finally(() => void quote(edited, rawLimit));
+  }, [flow.state.step, edited, rawLimit, quote]);
+
   function chunk(legs: SmartFillLeg[], size: number): SmartFillLeg[][] {
     const groups: SmartFillLeg[][] = [];
     for (let i = 0; i < legs.length; i += size) groups.push(legs.slice(i, i + size));
@@ -297,7 +309,11 @@ function MarketTab({
       flow.reset();
       setQueue([]);
       setRunIndex(0);
-      if (rawLimit !== null) void quote(edited, rawLimit);
+      // Hard refresh before re-quoting: the DB order cache doesn't know
+      // this settled tx's orders are gone until the next sync (see
+      // OrderBook.tsx's hardRefresh) — quoting off the stale cache would
+      // just plan another leg into an order that's already taken.
+      if (rawLimit !== null) void api.reindex().finally(() => void quote(edited, rawLimit));
     };
     return (
       <div className="swap-card tx-flow-host">
@@ -311,7 +327,7 @@ function MarketTab({
             } else {
               setQueue([]);
               setRunIndex(0);
-              if (rawLimit !== null) void quote(edited, rawLimit);
+              if (rawLimit !== null) void api.reindex().finally(() => void quote(edited, rawLimit));
             }
           }}
           // Leaving early only ever ABANDONS remaining batches (never builds

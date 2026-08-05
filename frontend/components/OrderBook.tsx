@@ -219,7 +219,12 @@ export function OrderBook({ pairId }: { pairId: string }) {
           onSettled={() => {
             flow.reset();
             setSelected(null);
-            refresh();
+            // Hard refresh (reindex), not a passive re-fetch: the DB cache
+            // won't know this order is gone until the next sync, and the
+            // background poll runs only every INDEXER_POLL_MS (minutes) —
+            // without this, the just-consumed order can still show as
+            // takeable and the next attempt fails with order_not_found.
+            void hardRefresh();
           }}
         />
       </div>
